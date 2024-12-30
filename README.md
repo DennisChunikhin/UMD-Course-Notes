@@ -44,38 +44,38 @@ Nicely formatted in $\LaTeX$!
 Directory: [`Courses/Math/AMSC460`](Courses/Math/AMSC460)
 
 ### MATH463
-[Complex Numbers](Courses/Math/MATH463_1_Complex_Numbers.pdf)
+[Complex Numbers](Courses/Math/MATH463/MATH463_1_Complex_Numbers.pdf)
  - Complex numbers, complex plane
  - Limits, continuity, and differentiability
  - Cauchy-Riemann equations
  - Analytic functions
 
-[Complex Functions](Courses/Math/MATH463_2_Complex_Functions.pdf)
+[Complex Functions](Courses/Math/MATH463/MATH463_2_Complex_Functions.pdf)
  - Complex exponential
  - Complex trigonometric functions
  - Complex logarithm
  - Integration, ML theorem
 
-[Integration](Courses/Math/MATH463_3_Integration.pdf)
+[Integration](Courses/Math/MATH463/MATH463_3_Integration.pdf)
  - Antiderivatives
  - Cauchy-Riemann theorem
  - Cauchy Integral Formula
  - Liouville's theorem
  - Maximum Modulus Principle
 
-[Sequences and Series](Courses/Math/MATH463_4_Sequences_Series.pdf)
+[Sequences and Series](Courses/Math/MATH463/MATH463_4_Sequences_Series.pdf)
  - Sequences and series
  - Taylor's theorem
  - Laurent series
  - Convergence
 
-[Residues](Courses/Math/MATH463_5_Residues.pdf)
+[Residues](Courses/Math/MATH463/MATH463_5_Residues.pdf)
  - Singularities, poles, and residues
  - Riemann's removable singularity theorem
  - Residue integrals
  - Zeros, the Argument Principle
 
-[Mappings](Courses/Math/MATH463_6_Mappings.pdf)
+[Mappings](Courses/Math/MATH463/MATH463_6_Mappings.pdf)
  - Affine mappings
  - Fractional linear transformations, bilinear mabs, Mobius transformations
  - Extended complex plane
