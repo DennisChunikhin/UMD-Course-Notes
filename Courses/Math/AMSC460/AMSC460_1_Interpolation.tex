@@ -1,0 +1,1443 @@
+\documentclass[12pt,letterpaper]{article}
+
+%\usepackage{common}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{nicematrix}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tcolorbox}
+\tcbuselibrary{theorems}
+
+\usepackage{hyperref}
+\usepackage{parskip}
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+\newcommand{\skipline}{\vspace{\baselineskip}}
+\newcommand{\dis}{\displaystyle}
+\newcommand{\noin}{\noindent}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\mt}[1]{\text{#1}}
+\newcommand{\tr}{\mathrm{Trace}}
+\newcommand{\Tr}{\mathrm{Trace}}
+\newcommand{\Ker}{\mathrm{Ker}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\fl}{\mathrm{fl}}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+
+\newtcbtheorem[number within=section]{theo}{Theorem}{colback=green!5,colframe=green!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{coro}{Corollarly}{colback=green!5,colframe=green!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{lemma}{Lemma}{colback=green!5,colframe=green!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{defn}{Definition}{colback=red!5,colframe=red!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{constr}{Construction}{colback=yellow!5,colframe=yellow!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{algo}{Algorithm}{colback=blue!5,colframe=blue!35!black,fonttitle=\bfseries}{th}
+%\newtcbtheorem[number within=section]{lemma}{Lemma}{colback=yellow!5,colframe=yellow!35!black,fonttitle=\bfseries}{th}
+
+\title{AMSC 460 Notes}
+\author{Dennis Chunikhin}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Polynomial Interpolation}
+
+\textbf{Assume the following for this entire section:}
+
+We have an arbitrary function $f(x)$.
+\begin{itemize}
+	\item We pick $n+1$ distinct points $$x_0 \neq x_1 \neq \dots \neq x_n \in \R$$
+	\item We evaluate the function at these points: $$y_0 = f(x_0), y_1 = f(x_1), \dots, y_n = f(x_n)$$
+	\item We want to find n-th degree polynomial $$p_n(x) = a_0 + a_1 x + \dots + a_n x^n$$
+	such that the polynomial equals $f(x)$ at all $x_i$:
+	\begin{align*}
+		p_n(x_0)&=y_0 =f(x_0) \\ p_n(x_1) &= y_1 = f(x_1)  \\ &\ \vdots \\ p_n(x_n) &= y_n = f(x_n)
+	\end{align*}
+\end{itemize}
+
+\subsection{Vandermonde Matrix}
+
+Notice that we can write the polynomial as a product of a row and column vector:
+\begin{align}
+	p_n(x) = a_0 + a_1 x + a_2 x^2 + \dots + a_n x^n = \begin{pmatrix}
+		1 & x & x^2 & \cdots & x^n
+	\end{pmatrix} \begin{pmatrix}
+		a_0 \\ a_1 \\ a_2 \\ \vdots \\ a_n
+	\end{pmatrix} \label{eq:vandermonde_1}
+\end{align}
+
+We want this to hold for each $x_i$ and $y_i$, so we concatenate the row-vectors on the left hand side of equation \ref{eq:vandermonde_1} as rows in a \textbf{Vandermonde} matrix and set the product equal to a vector of the $y$'s:
+\begin{defn}{Polynomial interpolation using the Vandermonde matrix}
+.To find the coefficients of the interpolating polynomial $p_n(x)$, we need to solve the following linear system of equations for the coefficient vector \textbf{a}:
+\begin{equation}
+\begin{pmatrix}
+	1 & x_0 & x_0^2 & \cdots & x_0^n \\
+	1 & x_1 & x_1^2 & \cdots & x_1^n \\
+	\vdots & \vdots & \vdots & \ddots & \vdots \\
+	1 & x_n & x_n^2 & \cdots & x_n^n
+\end{pmatrix}
+\begin{pmatrix}
+	a_0 \\ a_1 \\ \vdots \\ a_n
+\end{pmatrix} =
+\begin{pmatrix}
+	y_0 \\ y_1 \\ \vdots \\ y_n
+\end{pmatrix}
+\end{equation}
+
+The matrix on the left-hand side of this equation is called the \textbf{Vandermonde matrix}.
+\label{def:1.1}
+\end{defn}
+
+\begin{theo}{A solution to the system exists}
+.A solution to the system of equations in definition \ref{def:1.1} always exists.
+\label{thm:1.1}
+\end{theo}
+
+\subsubsection*{Proof of theorem \ref{thm:1.1}}
+
+If we can show that the Vandermonde matrix is invertible, we prove that a solution exists.
+
+To show that the Vandermonde matrix is invertible, we need to show that its columns are linearly independent. That is, that the only solution to
+\begin{equation} \label{eq:2}
+c_0 \begin{pmatrix}
+	1 \\ 1 \\ \vdots \\ 1
+\end{pmatrix} +
+c_1 \begin{pmatrix}
+	x_0 \\ x_1 \\ \vdots \\ x_n^n
+\end{pmatrix} +
+c_2 \begin{pmatrix}
+	x_0^2 \\ x_1^2 \\ \vdots \\ x_n^n
+\end{pmatrix} + \dots +
+c_n \begin{pmatrix}
+	x_0^n \\ x_1^n \\ \vdots \\ x_n^n
+\end{pmatrix}  = 0
+\end{equation}
+is $c_0 = c_1 = \dots = c_n = 0$.
+
+Notice that we can write equation \ref{eq:2} as
+\begin{equation} \label{eq:3}
+\begin{pmatrix}
+	c_0 + c_1 x_0 + c_2 x_0^2 + \dots + c_nx_0^n \\
+	c_0 + c_1 x_1 + c_2 x_1^2 + \dots + c_nx_1^n \\
+	\vdots \\
+	c_n + c_1 x_n + c_2 x_n^2 + \dots + c_nx_n^n
+\end{pmatrix} = 0
+\end{equation}
+
+Let's denote the polynomial $c_0 + c_1 x + c_2 x^2 + \dots + c_n x^n = C(x)$.
+
+Notice that each row of equation \ref{eq:3} is the polynomial $C$ evaluated at $x_i$, and is equal to zero. This implies that each $x_i$ is a root of the polynomial $C$. However $C$ is an n-th degree polynomial, meaning it must have at most $n$ distinct roots, or be identically zero ($C(x)=0$). Since there are $n+1$ distinct $x_i$, we must have $C(x) = c_0 + c_1x + \dots + c_n x^n = 0 \implies c_0=c_1=\dots=c_n=0$.
+
+Thus the columns are linearly independent, the Vandermonde matrix is invertible, and a solution to the linear equation in definition \ref{def:1.1} exists!
+
+\subsection{Lagrange polynomials}
+
+Alternatively we can interpolate using \textbf{Lagrange polynomials:}
+\begin{defn}{Lagrange Polynomials}
+.The k-th Lagrange polynomial is:
+\[
+l_k(x) = \frac{(x-x_0)(x-x_1)\dots(x-x_{k-1})(x-x_{k+1})\dots(x-x_n)}{(x_k-x_0)(x_k-x_1)\dots(x_k-x_{k-1})(x_k-x_{k+1})\dots(x_k-x_n)}
+\]
+\label{def:lagrange}
+\end{defn}
+
+This polynomial is constructed to be zero at all $x_i, i\neq k$ and $1$ at $x_k$. This makes it very useful for finding interpolating polynomials mathematically:
+\begin{theo}{Interpolation using Lagrange polynomials}
+.The interpolating polynomial is given by:
+$$p_n(x) = y_0 l_0(x) + y_1 l_1(x) + \dots + y_n l_n(x)$$
+\label{thm:lagrange_interpolation}
+\end{theo}
+This is inefficient to compute, but is mathematically useful.
+
+\section{Accuracy of Interpolation}
+
+Take the same setup as in section 1:
+
+We are interpolating arbitrary function $f(x)$ on the interval $[a, b] \subseteq \R$ at $n+1$ points with an $n$-th degree polynomial $p(x)$.
+
+We make the additional assumption that the function $f$ is defined on the interval $[a,b]$ and that $f^{(n+1)}$ is well defined on $[a,b]$.
+
+\begin{constr}{Setup}
+.Pick an arbitrary point in the interval $$\xi \in [a,b]$$
+
+Define
+\begin{equation}\label{eq:def_L}
+L(x) = (x-x_0)(x-x_1) \dots (x-x_n)
+\end{equation}
+This is the ''simplest'' polynomial that has the roots $x_0, \dots, x_n$.
+
+\skipline
+
+Define
+\begin{equation}
+\alpha = \frac{f(\xi) - p(\xi)}{L(\xi)}
+\end{equation}
+
+\skipline
+
+Finally, define
+\begin{equation}\label{eq:def_F}
+F(x) = f(x) - p(x) - \alpha L(x)
+\end{equation}
+All of these constructions designed so that $F$ has zeros at $x_0, \dots, x_n$ and $\xi$:
+\begin{equation}\label{eq:7}
+F(x_0) = F(x_1) = \dots = F(x_n) = F(\xi) = 0
+\end{equation}
+\end{constr}
+
+Notice that by equation \ref{eq:7}, $F$ has $n+2$ roots in $[a,b]$.
+
+By Rolle's theorem,
+\begin{align*}
+	F'(x) \text{ has } &n+1 \text{ roots} \\
+	F''(x) \text{ has } &n \text{ roots} \\
+	&\ \vdots \\
+	F^{(n+1)}(x) \text{ has } &1 \text{ root}
+\end{align*}
+
+\begin{constr}{$\eta$}
+.Let $\eta \in [a,b]$ be the root of $F^{(n+1)}$
+
+\medskip
+That is,
+\begin{equation}
+	F^{(n+1)}(\eta) = 0
+\end{equation}
+\label{constr:mu}
+\end{constr}
+
+By the definition of $F$ (equation \ref{eq:def_F}),
+\begin{equation}\label{eq:poly_bound_1}
+	F^{(n+1)}(\eta) = f^{(n+1)}(\eta) - p^{(n+1)}(\eta) - \alpha L^{(n+1)}(\eta) = 0
+\end{equation}
+
+Since the interpolating polynomial $p$ is an $n$-th degree polynomial, we have $p^{(n+1)} = 0$.
+
+Thus equation \ref{eq:poly_bound_1} becomes
+\begin{equation}\label{eq:poly_bound_2}
+	f^{(n+1)}(\eta) - \alpha L^{(n+1)}(\eta) = 0
+\end{equation}
+
+Notice that by the definition of $L$ (equation \ref{eq:def_L}), $L$ is an $n+1$ degree polynomial with leading term $x^{(n+1)}$, so
+\begin{equation}
+	L^{(n+1)} = (n+1)!
+\end{equation}
+Thus equation \ref{eq:poly_bound_2} becomes
+\begin{equation}
+	f^{(n+1)}(\eta) - \alpha (n+1)! = 0
+\end{equation}
+which gives us
+\begin{align}
+	f^{(n+1)}(\eta) &= \alpha (n+1)! \\
+	&= \frac{f(\xi) - p(\xi)}{L(\xi)} (n+1)!
+\end{align}
+This finally gives us the result
+\begin{align}
+	f(\xi) - p(\xi) &= \frac{f^{(n+1)}(\eta)}{(n+1)!} L(\xi) \\
+	&= \frac{f^{(n+1)}(\eta)}{(n+1)!} (\xi - x_0)(\xi - x_1) \dots (\xi - x_n)
+\end{align}
+
+\begin{theo}{Polynomial interpolation error}
+.The error of polynomial interpolation at any point $\xi$ is given by
+\begin{equation}
+	f(\xi) - p(\xi) = \frac{f^{(n+1)}(\eta)}{(n+1)!}(\xi - x_0)(\xi - x_1) \dots (\xi-x_n)
+\end{equation}
+\label{thm:poly_error}
+\end{theo}
+\begin{coro}{Polynomial interpolation error bound}
+.The error of polynomial interpolation is bounded by
+\begin{equation}
+	\big| f - p \big| \leq \left| \frac{f^{(n+1)}(\eta)}{(n+1)!} \right| \max_{\xi \in [a,b]} \big| (\xi - x_0) \dots (\xi-x_n) \big|
+\end{equation}
+This is a direct consequence of theorem 2.1 (take the absolute value of the result).
+\label{thm:poly_error_bound}
+\end{coro}
+
+\begin{algo}{Efficiently evaluating a polynomial}
+.Evaluate a polynomial $p(x) = a_0 + a_1x + \dots + a_nx^n$ at some point $x$.
+
+\medskip
+
+We rewrite $p(x) = a_0 + x(a_1 + x(a_2 + \dots ))$.
+\begin{algorithm}[H]
+\caption{Evaluate a polynomial}
+\begin{algorithmic}[1]
+\State $p = a_n$
+\For{$i = n-1$ to $0$}
+	\State $p = a_i + xp$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+\label{alg:poly_eval}
+\end{algo}
+
+\subsection{Piecewise Interpolation}
+Break interval into $n$ segments and do polynomial interpolation on each of the segments.
+
+Let $h = \max_{1 \leq i \leq n} \big| x_i - x_{i-1} \big|$ denote the maximum width of the segments.
+
+Then, by adding up the error for each of the intervals as given by theorem \ref{thm:poly_error_bound}, we get:
+% TODO: Generalize?
+\begin{theo}{Linear piecewise interpolation error}
+.The error bound for linear (degree 1) piecewise interpolation $l(x)$ using $n$ intervals with maximum interval width $h$ is given by
+\begin{equation}
+	\big| f - l \big| \leq \max_{\eta \in [x_0, x_n]} \frac{\big| f''(\eta) \big|}{2} \frac{h^2}{4}
+\end{equation}
+\label{thm:piecewise_error}
+\end{theo}
+
+\textbf{Benefit:} We reduce error as we add intervals (as $h \rightarrow 0$).
+
+\textbf{Con:} The derivative is not continuous.
+
+\section{Least Squares Fitting}
+Consider data points consisting of a function $f$ which, evaluated at points $x_0, x_1, \dots, x_n$, yields $y_0, y_1, \dots, y_n$.
+
+We want to approximate $f$ using these datapoints with polynomial $\hat{f}$ of degree $m < n$.
+
+As in section 1, this problem can be represented with the Vandermonde matrix
+\begin{constr}{Least squares fitting problem}
+.Consider fitting polynomial
+\begin{equation}
+	\hat{f}(x) = a_0 + a_1 x + \cdots + a_m x^m
+\end{equation}
+
+Ideally, we want $\hat{f}(x_i) = y_i$ for all $i=1, \dots, n$, which we write down as the following matrix equation
+\begin{equation}
+\begin{pmatrix}
+	1 & x_0 & x_0^2 & \cdots & x_0^m \\
+	1 & x_1 & x_1^2 & \cdots & x_1^m \\
+	\vdots & \vdots & \vdots & \ddots & \vdots \\
+	1 & x_n & x_n^2 & \cdots & x_n^m
+\end{pmatrix}
+\begin{pmatrix}
+	a_0 \\ a_1 \\ \vdots \\ a_m
+\end{pmatrix} =
+\begin{pmatrix}
+	y_0 \\ y_1 \\ \vdots \\ y_n
+\end{pmatrix}
+\end{equation}
+
+We denote the big matrix $A$ and write this equation more concisely as
+\begin{equation}
+	Aa = y
+\end{equation}
+\label{constr:least_squares}
+\end{constr}
+
+Unless we get incredibly lucky, the system $Aa = y$ has no solutions. Instead we want to find coefficient vector $a$ that minimizes the error.
+
+\begin{defn}{$l^2$ norm}
+.The $l^2$ norm is the typical distance metric we are used to. It is defined for a vector $\mathbf{x}$ as
+\begin{equation}
+\left\lVert 
+\begin{pmatrix}
+	x_1 \\ \vdots \\ x_n
+\end{pmatrix}
+\right\lVert_2 = \sqrt{x_1^2 + \cdots + x_n^2}
+\end{equation}
+
+Note that
+\begin{equation}
+\mathbf{x}^T \mathbf{x} = \begin{pmatrix}
+	x_1 & \cdots & x_n
+\end{pmatrix} \begin{pmatrix}
+	x_1 \\ \vdots \\ x_n
+\end{pmatrix} = x_1^2 + \cdots + x_n^2 = \lVert \mathbf{x} \rVert_2^2
+\end{equation}
+
+Arguably this is a better (more generalizable) definition for $l^2$ norm.
+
+\label{defn:l2_norm}
+\end{defn}
+
+We define the error using this distance metric:
+\begin{equation}
+	\left\lVert y - Aa \right\rVert_2
+\end{equation}
+
+We want to minimize this. Note that minimizing this is equivalent to minimizing
+\begin{align}
+	\lVert y - Aa \rVert_2^2 &= (y - Aa)^T (y - Aa) \\
+	&= (y^T - (Aa)^T) (y - Aa) \\
+	&= y^T y - (Aa)^T y - y^T (Aa) + (Aa)^T (Aa) \label{eq:norm_sq}
+\end{align}
+
+We note that for two vectors $x, y$, $x^T y = y^T x$ (this may look familiar, since $x \cdot y = x^T y$ is a common way to define the dot product, and the dot product is commutative).
+
+We also note that $(Aa)^T = a^T A^T$
+
+Thus equation \ref{eq:norm_sq} becomes
+\begin{equation}
+	y^T y - 2y^T Aa + a^T A^T A a = y^T y - 2(A^T y)^T a + a^T A^T A a
+\end{equation}
+
+To mimize this, we set its gradient (with respect to $a$) equal to $0$:
+\begin{align}
+	\nabla (y^T y - 2(A^T y)^T a + a^T A^T A a) &= \nabla (- 2(A^T y)^T a + a^T A^T A a) \\
+	&= -2A^T y + 2A^TAa = 0 \label{eq:grad}
+\end{align}
+The calculation of the gradient can be tedious to show but is an approachable exercise in multivariable calculus. Thus we state it without proof.
+
+Equation \ref{eq:grad} gives us
+\begin{equation}
+	A^T A a = A^T y
+\end{equation}
+
+\begin{theo}{The normal equations}
+.The least squares polynomial fit for equation $Aa = y$ is given by the solution to
+\begin{equation}
+	A^T A a = A^T y
+\end{equation}
+
+This system of equations is called the \textbf{normal equations}.
+\label{thm:normal_eqns}
+\end{theo}
+
+
+\section{Numerical Integration}
+
+Given arbitrary function $f(x)$ defined on $[a,b] \subseteq \R$, we want to approximate
+\begin{equation}
+	I(f) = \int_a^b f(x) \dd x
+\end{equation}
+
+We do this by interpolating the function and then taking the integral of the interpolating polynomial. The specific procedure (crucially, the points used for the interpolation) is called a \textbf{quadrature rule}.
+
+\begin{defn}{Quadrature}
+.We approximate $$I(f) \approx Q(f)$$
+using a \textbf{quadrature rule} $Q$, in general given by
+\begin{equation}\label{eq:quadrature}
+	Q(f) = (b-a) \sum_{k=1}^m w_k f(x_k)
+\end{equation}
+for some weights $w_k$ and some arbitrarily chosen points $x_k$ at which we evaluate the function $f$.
+\label{def:quadrature}
+\end{defn}
+The weights come about by integration as we will soon see.
+
+\subsection{General Quadrature Rule}
+
+We interpolate at points $x_0, x_1, \dots, x_k$ with $k$-th degree interpolating $p_k(x)$.
+
+Using Lagrange polynomials, we have:
+\begin{equation}
+	p_k(x) = \sum_{i=0}^k f(x_i) l_i(x)
+\end{equation}
+
+So the quadrature rule is:
+\begin{equation}
+	Q(f) = \sum_{i=0}^k f(x_i) \int_a^b l_i(x) \dd x
+\end{equation}
+
+\begin{theo}{General quadrature rule}
+.The general degree $k$-th degree quadrature rule is given by
+\begin{equation}\label{eq:general_quad}
+	Q(f) = \sum_{i=0}^k f(x_i) \int_a^b l_i(x) \dd x
+\end{equation}
+\label{thm:general_quad}
+\end{theo}
+
+\begin{defn}{Newton-Cotes rules}
+.If the points of interpolation $x_0, \dots, x_k$ are uniformly spaced, the quadrature rules are called \textbf{Newton-Cotes rules}.
+\label{def:Newton_Cotes}
+\end{defn}
+
+\subsection{Rectangle Rule}
+Take a $0$-degree interpolant $p_0(x) = f(a)$ of $y_0 = f(a)$ at $x_0 = a$.
+
+The quadrature rule is given by
+\begin{equation}
+	Q_0(f) = \int_a^b p_0(x) \dd x = \int_a^b f(a) \dd x = (b-a) f(a)
+\end{equation}
+
+\begin{defn}{Rectangle rule}
+.The rectangle rule is the $0$-th degree Newton-Cotes method interpolated at the point $x_0=a$.
+
+\medskip
+
+The quadrature rule is given by
+\begin{equation}
+	Q_0(x) = (b-a)f(a)
+\end{equation}
+\label{defn:rect_rule}
+\end{defn}
+
+\subsection{Trapezoid Rule}
+Take a degree $1$ Newton-Cotes interpolant $p_1(x)$ interpolating $f$ at points $x_0 = a$ and $x_1 = b$.
+
+$p_1(x)$ is a line which intersects $f$ at $x=a$ and $x=b$. Thus,
+\begin{equation}
+	p_1(x) = \frac{f(b) - f(a)}{b-a}(x - a) + f(a)
+\end{equation}
+
+Therefore the quadrature rule is given by
+\begin{align}
+	Q_1(f) &= \int_a^b p_1(x) \dd x \\
+	&= \frac{f(b) - f(a)}{2(b-a)}(x-a)^2 + f(a)x \bigg|_a^b \\
+	&= (b-a) \frac{f(a) + f(b)}{2}
+\end{align}
+
+\begin{defn}{Trapezoid rule}
+.The trapezoid rule is the $1$-st degree Newton-Cotes method interpolated at the points $x_0 = a$ and $x_1 = b$.
+
+\medskip
+
+The quadrature rule is given by
+\begin{equation}
+	Q_1(f) = (b-a) \frac{f(a) + f(b)}{2}
+\end{equation}
+\label{defn:trap_rule}
+\end{defn}
+
+\subsection{Simpson's Rule}
+Take a degree $2$ Newton-Cotes interpolant $p_2(x)$ interpolating $f$ at the points $x_0 = a$, $x_1 = \frac{a+b}{2}$, and $x_2 = b$.
+
+We can follow the general quadrature rule procedure, wherein we first write down $p_2(x)$ using lagrange polynomials:
+\begin{align}
+	p_2(x) &= f(a) l_0(x) + f(\frac{a+b}{2}) l_1(x) + f(b) l_2(x) \\
+	&= f(a) \frac{(x-\frac{a+b}{2})(x-b)}{(a-\frac{a+b}{2})(a-b)} \\
+	&\quad + f(\frac{a+b}{2})\frac{(x-a)(x-b)}{(\frac{a+b}{2}-a)(\frac{a+b}{2}-b)} \\
+	&\quad + f(b) \frac{(x-a)(x-\frac{a+b}{2})}{(b-a)(b-\frac{a+b}{2})}
+\end{align}
+
+The quadrature rule is given
+\begin{equation}
+	Q_2(x) = \int_a^b p_2(x) \dd x = f(a) \frac{1}{6} + f\left(\frac{a+b}{2}\right) \frac{2}{3} + f(b) \frac{1}{6}
+\end{equation}
+
+The process of simplification and integration of $p_2(x)$ is tedious to typeset so it is omitted, but is in general not too difficult to do.
+
+\begin{defn}{Simpson's rule}
+.Simpson's rule is the $2$-nd degree Newton-Cotes method interpolated at the points $x_0=a$, $x_1=\frac{a+b}{2}$, $x_2=b$.
+
+\medskip
+
+The quadrature rule is given by
+\begin{equation}
+	Q_2(f) = f(a) \frac{1}{6} + f\left(\frac{a+b}{2}\right) \frac{2}{3} + f(b) \frac{1}{6}
+\end{equation}
+\label{defn:simpson_rule}
+\end{defn}
+
+\subsection{Accuracy of Trapezoid Rule}
+
+The trapezoid rule uses piecewise linear interpolation. We know from theorem 2.1 that the error in piecewise linear interpolation is given by
+\begin{equation}
+	f(x) - p_1(x) = \frac{f''(\eta_x)}{2} (x-a)(x-b)
+\end{equation}
+
+The quadrature error is then
+\begin{align}
+	\big| \text{Error} \big| &= \left| \int_a^b f(x) - p_1(x) \dd x \right| \\
+	&= \left| \int_a^b \frac{f''(\eta_x)}{2}(x-a)(x-b) \dd x \right| \\
+	&\leq \int_a^b \left| \frac{f''(\eta_x)}{2} (x-a)(x-b) \right| \dd x \\
+	&\leq \max_{\eta \in [a, b]} \frac{\left| f''(\eta) \right|}{2} \int_a^b \left| (x-a)(x-b) \right| \dd x \label{eq:40}
+\end{align}
+
+Notice that the polynomial $(x-a)(x-b)$ is negative on the interval $x \in [a,b]$. Therefore equation \ref{eq:40} becomes
+\begin{align}
+	\big| \text{Error} \big| &\leq -\max_{\eta\in[a,b]}\frac{\left| f''(\eta) \right|}{2} \int_a^b (x-a)(x-b) \dd x \label{eq:42}
+\end{align}
+
+We integrate equation \ref{eq:42} by parts to get
+\begin{align}
+	\big| \text{Error} \big| &\leq -\max_{\eta\in[a,b]}\frac{\left| f''(\eta) \right|}{2}\left[\frac{1}{2}(x-a)^2(x-b) \bigg|_a^b - \frac{1}{2} \int_a^b (x-a)^2 \dd x \right] \\
+	&= \max_{\eta\in[a,b]}\frac{\left| f''(\eta) \right|}{2} \frac{1}{6} (x-a)^3 \bigg|_a^b \\
+	&= \max_{\eta\in[a,b]}\frac{\left| f''(\eta) \right|}{12} (b-a)^3
+\end{align}
+
+\begin{theo}{Trapezoid rule error bound}
+.The Quadrature error of the trapezoid rule is bounded by
+\begin{equation}
+	\max_{\eta \in [a,b]} \frac{\left| f''(\eta) \right|}{12} (b-a)^3
+\end{equation}
+\label{thm:trap_error}
+\end{theo}
+
+\subsection{More on General Quadrature}
+
+\begin{theo}{Quadrature of even degree perfectly integrates polynomials of 1 degree higher}
+.If $k$ is even and $f$ is a polynomial of degree $k+1$, then the $k$-th degree quadrature gives the exact integral:
+\begin{equation}
+	Q_k(x) = I(x)
+\end{equation}
+\end{theo}
+
+\subsubsection*{Sketch of proof of theorem 4.3 for the Simpson's rule}
+
+We note that $I$ and $Q$ are linear (it is a good exercise to verify this).
+
+Consider $f = \alpha_3 x^3 + \alpha_2 x^2 + \alpha_1 x + \alpha_0$.
+
+\begin{align}
+	I(f) &= \alpha_3 I(x^3) + I(\alpha_2 x^2 + \alpha_1 x + \alpha_0) \\
+	&= \alpha_3 I(x^3) + Q(\alpha_2 x^2 + \alpha_1 x + \alpha_0)
+\end{align}
+
+and we can verify by integrating $f$ and computing the quadrature rule that $I(x^3) = Q(x^3)$.
+
+Thus we get $I(x) = Q(x)$.
+
+
+\section{Piecewise Quadrature Rules}
+
+We split the interval $[a,b]$ into sub-intervals and use a quadrature rule on each sub-interval and adding the results up.
+
+Let's say we split the interval at points $\{x_i\}$ into sub-intervals $[x_i, x_{i+1}]$.
+
+\subsection{Composite Trapezoidal Rule}
+
+Let us apply the trapezoidal quadrature rule $Q_i(f)$ to $f$ on each sub-interval $[x_i, x_{i+1}]$.
+
+Call $I_i(f)$ the true integral of $f$ on each sub-interval $[x_i, x_{i+1}]$, that is
+\begin{equation}
+	I_i(f) = \int_{x_i}^{x_{i+1}} f(x) \dd x
+\end{equation}
+
+Since we can see that 
+\begin{equation}
+	I(f) = \sum_{i=1}^n I_i(f)
+\end{equation}
+the composite trapezoidal quadrature rule is given by
+\begin{equation}
+	Q(f) = \sum_{i=1}^n Q_i(f)
+\end{equation}
+
+\subsection{Piecewise Quadrature Error Bounds}
+\subsubsection{Composite Trapezoidal Rule}
+We will now estimate the error bound for the composite trapezoidal rule.
+
+\begin{align}
+	\big| \text{Error} \big| &= \left	| I(f) - Q(f) \right| \\
+	&= \left| \sum_{i=1}^n \big(I_i(f) - Q_i(f) \big) \right| \\
+	&\leq \sum_{i=1}^n \left| I_i(f) - Q_i(f) \right| \label{eq:53}
+\end{align}
+
+We substitute the error bound for the trapezoidal quadrature rule (theorem 4.2) into equation \ref{eq:53} to get:
+\begin{align}
+	\big| \text{Error} \big| &\leq \sum_{i=1}^n \max_{\eta \in [x_i, x_{i+1}]} \frac{\left| f''(\eta) \right|}{12} (x_i - x_{i-1})^3 \\
+	&\leq \max_{\eta \in [a,b]} \frac{\left| f''(\eta) \right|}{12} \sum_{i=1}^n (x_i - x_{i-1})^3 \label{eq:55}
+\end{align}
+
+Let's now assume that all of the sub-intervals are of size $h$, that is $\forall x_{i+1}, x_i = h$.
+
+Note that since there are $n$ intervals, $h = \frac{b-a}{n}$
+
+Equation \ref{eq:55} then becomes:
+\begin{align}
+	\big| \text{Error} \big| &\leq \max_{\eta \in [a,b]} \frac{\left| f''(\eta) \right|}{12} \sum_{i=1}^n h^3 \\
+	&\leq \max_{\eta \in [a,b]} \frac{\left| f''(\eta) \right|}{12} n h^3 \\
+	&= \max_{\eta \in [a,b]} \frac{\left| f''(\eta) \right|}{12} (b-a) h^2
+\end{align}
+
+\begin{theo}{Piecewise trapezoidal quadrature rule error}
+.Given sub-intervals of equal width $h$, the error in the piecewise trapezoidal quadrature rule is bounded by
+\begin{equation}
+	\max_{\eta \in [a,b]} \frac{\left| f''(\eta) \right|}{12} (b-a) h^2
+\end{equation}
+\label{thm:piecewise_trap_error}
+\end{theo}
+
+Error decreases as we decrease interval width $h$. Specifically, the error is $O(h^2)$.
+
+\subsubsection{Composite Simpson's Rule}
+
+The same analysis can be performed for piecewise Simpson's rule, though it is tedious and therefore omitted.
+
+\begin{theo}{Piecewise Simpson's quadrature rule error}
+.Given sub-intervals of equal width $h$, the error in the piecewise Simpson's quadrature rule is bounded by
+\begin{align}
+	%\max_{\xi \in [a,b]} \frac{\left| f^{(4)}(\xi) \right|}{90} \left( \frac{b-a}{2} \right)^5 \\
+	\max_{\xi \in [a,b]} \frac{\left| f^{(4)}(\xi) \right|}{2880} (b-a) h^4
+\end{align}
+\label{thm:piecwise_simpson_error}
+\end{theo}
+
+For composite Simpson's rule, the error reduces as $O(h^4)$!
+
+\subsection{Estimating Error in  Piecewise Quadrature}
+
+Consider composite quadrature on interval $[\alpha, \beta]$
+
+\subsubsection{Composite Trapezoidal Rule}
+We will estimate the error bound of the trapezoid rule by performing it on different sub-intervals.
+
+Let $Q_1$ be the composite trapezoidal quadrature rule on $n$ sub-intervals of width $h$.
+
+Let $Q_2$ be the same quadrature rule but on $2n$ sub-intervals of width $\frac{h}{2}$.
+
+The error bounds are
+\begin{align}
+	\left| I(f) - Q_1(f) \right| &\leq \epsilon_1 = \frac{\beta-\alpha}{12} \max_{\xi \in [\alpha, \beta]} \big| f''(\xi) \big| h^2 \\
+	\left| I(f) - Q_2(f) \right| &\leq \epsilon_2 = \frac{\beta-\alpha}{12} \max_{\xi \in [\alpha, \beta]} \big| f''(\xi) \big| \left( \frac{h}{2} \right)^2
+\end{align}
+
+Notice that
+\begin{equation}
+	\epsilon_2 = \frac{1}{4} \epsilon_1
+\end{equation}
+
+That is,
+\begin{align}
+	& ( I - Q_1 ) \approx 4 ( I - Q_2 ) \\
+	\implies & ( I - Q_1 ) - ( I - Q_2) \approx 3 (I - Q_2) \\
+	\implies & (I - Q_2) \approx \frac{1}{3} (Q_2 - Q_1)
+\end{align}
+
+\begin{theo}{Composite trapezoidal rule error estimate}
+.Let $Q_1$ be the composite trapezoidal quadrature rule on $n$ sub-intervals of width $h$.
+
+Let $Q_2$ be the same quadrature rule but on $2n$ sub-intervals of width $\frac{h}{2}$.
+
+\medskip
+
+The error bound of $Q_2$ is approximately
+\begin{equation}
+	(I - Q_2) \approx \frac{1}{3} (Q_2 - Q_1)
+\end{equation}
+\label{thm:comp_trap_error_est}
+\end{theo}
+
+\subsubsection{Composite Simpson's Rule}
+The same analysis can be performed for the composite Simpson's quadrature rule.
+
+Let $Q_1$ be the composite Simpson's quadrature rule on $n$ sub-intervals of width $h$.
+
+Let $Q_2$ be the same quadrature rule but on $2n$ sub-intervals of width $\frac{h}{2}$.
+
+The error bounds are
+\begin{align}
+	\left| I(f) - Q_1(f) \right| &\leq \epsilon_1 = (\beta - \alpha) \max_{\xi \in [\alpha, \beta]} \frac{\big| f''(\xi) \big|}{2880} h^4 \\
+	\left| I(f) - Q_2(f) \right| &\leq \epsilon_2 = (\beta - \alpha) \max_{\xi \in [\alpha, \beta]} \frac{\big| f''(\xi) \big|}{2880} \left( \frac{h}{2} \right)^4
+\end{align}
+
+Notice that
+\begin{equation}
+	\epsilon_2 = \frac{1}{16} \epsilon_1
+\end{equation}
+
+That is,
+\begin{align}
+	& ( I - Q_1 ) \approx 16 ( I - Q_2 ) \\
+	\implies & ( I - Q_1 ) - ( I - Q_2) \approx 15 (I - Q_2) \\
+	\implies & (I - Q_2) \approx \frac{1}{15} (Q_2 - Q_1)
+\end{align}
+
+\begin{theo}{Composite Simpson's rule error estimate}
+.Let $Q_1$ be the composite Simpson's quadrature rule on $n$ sub-intervals of width $h$.
+
+Let $Q_2$ be the same quadrature rule but on $2n$ sub-intervals of width $\frac{h}{2}$.
+
+\medskip
+
+The error bound of $Q_2$ is approximately
+\begin{equation}
+	(I - Q_2) \approx \frac{1}{15} (Q_2 - Q_1)
+\end{equation}
+\label{thm:comp_Simpson_error_est}
+\end{theo}
+
+\subsection{The Adaptive Quadrature Algorithm}
+We can use these estimated error bounds to create an adaptive algorithm that computes a quadrature rule to an arbitrary given tolerance.
+
+\begin{algo}{Adaptive Quadrature}
+.A recursive algorithm for performing quadrature of given function $f$ on interval $[\alpha, \beta]$ to an arbitrary error tolerance $\tau$.
+
+\begin{algorithm}[H]
+\caption{Adaptive Quadrature}
+\begin{algorithmic}[1]
+\Require{$\alpha, \beta, f, \tau$}
+\Ensure{$Q$}
+\Statex
+\Function{adaptq}{$\alpha, \beta, f, \tau$}
+\State Compute $Q_1$ \Comment{Intervals of width $h$}
+\State Compute $Q_2$ \Comment{Intervals of width $h/2$}
+\item[]
+\State Compute $\epsilon = \frac{1}{3} (Q_2 - Q_1)$ \Comment{for trapezoidal rule}
+\State \textbf{or}
+\State Compute $\epsilon = \frac{1}{15} (Q_2 - Q_1)$ \Comment{for Simpson's rule}
+\item[]
+\If{$\epsilon \leq \tau$}
+\State $Q = Q_1$
+\Else
+\State $Q = $ \Call{adaptq}{$\alpha, \frac{\alpha+\beta}{2}, f, \frac{\tau}{2}$} $ + $ \Call{adaptq}{$\frac{\alpha+\beta}{2}, \beta, f, \frac{\tau}{2}$}
+\EndIf
+\item[]
+\State \Return $Q$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+\label{alg:adaptq}
+\end{algo}
+
+\section{Gaussian Quadrature}
+
+Recall that by theorem 4.3, a Newton-Cotes quadrature rule of degreen $m-1$ (using $m$ points) produces the exact integral of a degree $m$ polynomial.
+
+By selecting points to interpolate more cleverly, we can do better.
+
+\subsection{An Orthonormal Basis for Polynomials}
+We must first discuss the vector space of degree $m$ polynomials.
+
+\begin{defn}{Polynomial inner product}
+.Define the inner product of two functions $f(x)$ and $g(x)$ on interval $[a,b]$ by
+\begin{equation}
+	\langle f, g \rangle = \int_a^b f(x) g(x) \dd x
+\end{equation}
+\label{defn:poly_inner_prod}
+\end{defn}
+
+\begin{defn}{Orthogonality of polynomials}
+.We say that two polynomials $p(x)$ and $q(x)$ are orthogonal if
+\begin{equation}
+	\langle p, q \rangle = \int_a^b pq \dd x = 0
+\end{equation}
+\label{defn:orthogonal}
+\end{defn}
+
+Consider the vector space of polynomials of degree $m$ or less (often denoted $\mathcal{P}_m(\R)$).
+
+We begin with a standard basis of this vector space:
+\begin{equation}
+	\{1, x, x^2, \dots, x^m\}
+\end{equation}
+
+Then use the Gram-Schmidt process to create an orthonormal basis
+\begin{equation}
+	\{\psi_0, \dots, \psi_m\}
+\end{equation}
+
+Where each $\psi_i$ is an $i$-th degree polynomial (note that if our interval is $[-1, 1]$, these are called the Legendre polynomials).
+
+Consider a $k$-th degree polynomial $q$. Note that since $\psi_0, \dots, \psi_m$ form a basis, we can write
+\begin{equation}
+	q = c_0 \psi_0 + \cdots + c_m \psi_m
+\end{equation}
+for some constants $c_0, \dots, c_m \in \R$.
+
+Since for all $i > k$, $\psi_i$ is a polynomial of order greater than $k$, meaning that $\forall i > k, c_i = 0$.
+
+Thus $q$ is a linear combination of $\psi_0, \dots, \psi_k$, meaning that
+\begin{equation}
+	\forall j > k, \langle \psi_j, q \rangle = 0
+\end{equation}
+
+\subsection{Zeros of the Inner Product}
+\begin{lemma}{The zeros of $\psi_m$ lie in $(a, b)$}
+.All roots of $\psi_m$ are real and lie in $(a,b)$.
+
+\label{thm:zero_of_inner}
+\end{lemma}
+
+\subsubsection*{Proof of lemma 6.1}
+Suppose $\psi_m$ has $k$ roots in $(a, b)$.
+
+Denote these roots $x_1, \dots, x_k$.
+
+Suppose $k < m$.
+
+Let $q(x) = (x-x_1)(x-x_2) \cdots (x-x_k)$.
+
+$q$ is a degree $k$ polynomial, and since by assumption $k < m$, $\psi_m$ is orthogonal to $q$. That is,
+\begin{equation}\label{eq:psi_q_ortho}
+	\int_a^b \psi_m(x) q(x) \dd x = 0
+\end{equation}
+
+Next we use a neat parity argument. Note that since $x_1, \dots, x_k$ are the only roots of $\psi_m$ on $(a,b)$, $\psi_m$ changes sign at and only these points in $(a,b)$. Note that these are also the only roots of $q$, so $q$ also changes sign at and only at these points. Because of this, we can write
+\begin{equation}
+	\psi_m(x) = q(x) s(x)
+\end{equation}
+where $s(x)$ does not change sign in $(a,b)$.
+
+Consider
+\begin{align}
+	\langle \psi_m(x), q(x) \rangle &= \int_a^b \psi_m(x) q(x) \dd x \\
+	&= \int_a^b q(x)^2 s(x) \dd x
+\end{align}
+
+Since neither $q(x)^2$ nor $s(x)$ change sign on $(a,b)$, and since neither are identically zero,
+\begin{equation}
+	\langle \psi_m(x), q(x) \rangle = \int_a^b q(x)^2 s(x) \dd x \neq 0
+\end{equation}
+but this is in contradiction with equation \ref{eq:psi_q_ortho}.
+
+Thus, we must have $k = m$. That is, $\psi_m$ must have all of its $m$ roots in $(a,b)$.
+
+
+\subsection{Gaussian Quadrature}
+\begin{defn}{Gaussian Quadrature}
+.We want to interpolate $f$ at $m$ points using a polynomial of degree $m-1$.
+
+Start with $\psi_m$ (degree $m$).
+
+By lemma 6.1, all roots of $\psi_m$ lie in $[a, b]$.
+
+Denote the roots of $\psi_m$ by $x_1, \dots, x_m$.
+
+These are the points we use for interpolation.
+
+That is, take $p_{m-1}$ the $m-1$ degree interpolating polynomial that interpolates $f$ at $x_1, \dots, x_m$.
+
+The quadrature rule is given by
+\begin{align}
+	Q(f) &= \int_a^b p_{m-1}(x) \dd x \\
+	&= w_1 f(x_1) + w_2 f(x_2) + \cdots + w_m f(x_m)
+\end{align}
+where
+\begin{equation}
+	w_j = \int_a^b l_j(x) \dd x
+\end{equation}
+\label{def:gauss_quad}
+\end{defn}
+
+\begin{theo}{Gaussian quadrature is perfect for polynomials of degree $2m-1$}
+.If $f$ is a polynomial of degree $2m-1$, then $Q(f) = I(f)$
+\label{thm:gauss_perfect}
+\end{theo}
+
+\subsubsection*{Proof of theorem 6.1}
+Take $f$ a polynomial of degree $2m-1$.
+
+We can write
+\begin{equation}
+	f(x) = \psi_m(x) g(x) + r(x)
+\end{equation}
+where $g$ is of degree no more than $(2m-1)-m = m-1$ and $r$ is of degreeno more than $m-1$.
+
+Then
+\begin{align}
+	Q(f) &= Q(\psi_m q + r) \\
+	&= Q(\psi_m q) + Q(r) \\
+	&= w_1 \psi_m(x_1)q(x_1) + \cdots + w_m \psi_m(x_m)q(x_m) + Q(r) \\
+	&= w_1 \cdot 0 \cdot q(x_1) + \cdots + w_m \cdot 0 \cdot q(x_m) + Q(r) \\
+	&= Q(r)
+\end{align}
+
+Since $r$ is of degree no more than $m-1$, $Q(r) = I(r)$. Thus,
+\begin{equation}\label{eq:quad_f_r}
+	Q(f) = I(r)
+\end{equation}
+
+Now consider
+\begin{equation}
+	I(f) = I(\psi_m q + r) = I(\psi_m q) + I(r)
+\end{equation}
+
+By ortogonality $I(\psi_m q) = 0$, giving us
+\begin{equation}\label{eq:int_f_r}
+	I(f) = I(r)
+\end{equation}
+
+So by equations \ref{eq:quad_f_r} and \ref{eq:int_f_r},
+\begin{equation}
+	Q(f) = I(f)
+\end{equation}
+
+\begin{theo}{Perfectly interpolating a $2m-1$ degree polynomial is the best we can do}
+.There is no quadrature rule $Q$ such that $Q(f) = I(f)$ for all polynomials of degree $2m$.
+\label{thm:gauss_perfect}
+\end{theo}
+
+\subsubsection*{Proof of theorem 6.2}
+Let $x_1, \dots, x_m$ be the $m$ distinct points at which the polynomial is interpolated.
+
+Consider the $2m$ degree polynomial
+\begin{equation}
+	f(x) = (x-x_1)^2 \cdots (x-x_m)^2
+\end{equation}
+
+Since $\forall x \in \R, f(x) \geq 0$ and is not identically $0$.
+\begin{equation}\label{eq:I_greater_0}
+	I(f) = \int_a^b f(x) \dd x > 0
+\end{equation}
+
+Let $p_{m-1}(x)$ be the degree $m-1$ polynomial interpolating $f$ at $x_1, \dots, x_m$.
+\begin{align}
+	p_{m-1} &= f(x_1) l_1(x) + \cdots + f(x_m) l_m(x) \\
+	&= 0 \cdot l_1(x) + \cdots + 0 \cdot l_m(x) = 0
+\end{align}
+
+Therefore
+\begin{equation}
+	Q(f) = \int_a^b p_{m-1} \dd x = \int_a^b 0 \dd x = 0
+\end{equation}
+
+But since by equation \ref{eq:I_greater_0}, $I(f) > 0$,
+\begin{equation}
+	Q(f) \neq I(f)
+\end{equation}
+
+
+\section{Quadrature in Higher Dimensions}
+Consider as an example quadrature in 2 dimensions.
+
+We want to approximate
+\begin{equation}
+	\int_a^b \int_c^d f(x,y) \dd x \dd y
+\end{equation}
+
+Define
+\begin{equation}
+	I_x(f) = \int_a^b f(x,y) \dd y \approx Q(x) = \sum_{j=1}^m w_j f(x, y_j)
+\end{equation}
+
+Then
+\begin{equation}
+	I(f) = \int_a^b I_x \dd x \approx \sum_{j=1}^m \sum_{k=1}^{m'} w_j v_k f(x_k, y_j)
+\end{equation}
+
+\begin{defn}{2 dimensional quadrature}
+.To estimate
+\begin{equation}
+	I(f) = \int_a^b \int_c^d f(x,y) \dd x \dd y
+\end{equation}
+we use quadrature
+\begin{equation}
+	Q(f) = \sum_{j=1}^m \sum_{k=1}^{m'} w_j v_k f(x_k, y_j)
+\end{equation}
+\label{def:2d_quad}
+\end{defn}
+
+Any 1 dimensional quadrature rule can be used for the weights $w_j$ and $v_k$.
+
+We can also see that this procedure generalizes to arbitrary dimensions.
+
+\subsection{Cost of 1D Quadrature}
+\begin{defn}{Problem size}
+.Define the \textbf{problem size}, denoted $N$, of a quadrature rule as the number of function evaluations needed.
+\label{def:prob_size}
+\end{defn}
+
+For quadrature using $m$ points in the interval, we need $m$ function evauations (1 at each point), so the problem size is $N = m$.
+
+Thus the total cost of a quadrature rule is $O(m) = O(N)$.
+
+We wan tot find the total cost to achieve a given error tolerace:
+\begin{equation}
+	\left| I(f) - Q(f) \right| \leq \tau
+\end{equation}
+
+For the composite trapezoidal rule, $\tau \propto h^2 \propto \frac{1}{m^2} = \frac{1}{N^2}$
+
+We want
+\begin{align}
+	& \frac{1}{N^2} \leq \tau \\
+	\implies & N \geq \frac{1}{\sqrt{\tau}}
+\end{align}
+
+Thus
+\begin{equation}
+	O(N) = \frac{1}{\sqrt{\tau}}
+\end{equation}
+
+\subsection{Cost of 2D Quadrature}
+Consider the composite trapezoidal rule with $m$ intervals in each direction.
+
+We need $m^2$ function evalulations, so the problem size is $N = m^2$.
+
+The width of each interval is proportional to $h$, so the area of each box on the domain is proportional to $h^2$.
+
+The error on the whole domain is proportional to $h^2$.
+
+We want $h^2 \leq \tau$.
+
+Since $N = m^2 \propto \frac{1}{h^2}$, the condition becomes
+\begin{align}
+	& \frac{1}{N} \leq \tau \\
+	\implies & N \geq \frac{1}{\tau}
+\end{align}
+
+So the cost is
+\begin{equation}
+	O(N) = \frac{1}{\tau}
+\end{equation}
+
+We can see that this logic generalizes to any dimension.
+
+\begin{theo}{Cost of composite trapezoidal quadrature in $d$ dimensions}
+.The cost of quadrature in $d$ dimensions with given error tolerance $\tau$ with respect to problem size $N$ is
+\begin{equation}
+	O(N) = \frac{1}{\tau^{d/2}}
+\end{equation}
+\label{thm:quad_d_dim}
+\end{theo}
+
+\subsection{Integration via Sampling Methods}
+Notice that we can think of a vector of the points we are using for quadrature as a random variable
+\begin{equation}
+X = \begin{pmatrix}
+	x_1 \\ \vdots \\ x_n
+\end{pmatrix}
+\end{equation}
+
+Notice that the sample mean/expectation value is a quadrature rule!
+
+Let's denote the sample mean quadrature rule by $\hat{E}(f)$.
+
+From statistics we know that that the error given $n_s$ samples is
+\begin{equation}
+	I(f) - \hat{E}(f) \propto \frac{1}{\sqrt{n_s}}
+\end{equation}
+
+Thereofore if we want the error to be below tolerance $\tau$, we require
+\begin{equation}
+	\tau \leq \sqrt{n_s}
+\end{equation}
+
+It is interesting to ask when the composite trapezoidal rule is more efficient than the statistical method. This equates to asking for what $d$ is the following inequality satisfied
+\begin{align}
+	& N^{2/d} \geq \sqrt{n_s} \\
+	\implies & N^{4/d} \geq n_s
+\end{align}
+
+This shows us that the composite trapezoidal rule will be more efficient when $d \leq 4$.
+
+\begin{theo}{Statistical method more efficient for high dimensions}
+.The composite trapezoidal quadrature rule is more efficient than the statistical rule for dimensions $d \leq 4$. Otherwise the statistical rule is more efficient.
+
+\skipline
+
+The composite Simpson's quadrature rule is more efficient than the statistical rule for dimensions $d \leq 8$. Otherwise the statistical rule is more efficient.
+\label{thm:sampling}
+\end{theo}
+
+
+\section{Gaussian Elimination}
+Given a linear system of equations $Ax = b$, where $A$ is a matrix and $x, b$ are vectors, we want to compute $x$.
+
+We can do this using Gaussian elimination (also known as row-reduction), which we represent as a series of matrix multiplications.
+
+Given matrix
+\begin{equation}
+A = \begin{pmatrix}
+	a_{11} & a_{12} & \cdots & a_{1n} \\
+	a_{21} & a_{22} & \cdots & a_{12n} \\
+	\vdots & \vdots & \ddots & \vdots \\
+	a_{n1} & a_{n2} & \cdots & a_{nn}
+\end{pmatrix}
+\end{equation}
+we represent the first step of Gaussian elimination as multiplication by the following matrix:
+\begin{constr}{$L_1$}
+.We construct the matrix
+\begin{equation}
+L_1 = \begin{pmatrix}
+	1 & 0 & 0 & \cdots & 0 \\
+	-a_{21}/a_{11} & 1 \\
+	-a_{31}/a_{11} & & 1 \\
+	\vdots & & & \ddots \\
+	-a_{n1}/a_{11} & & & & 1
+\end{pmatrix}
+\end{equation}
+
+We can alternatively view this as a block matrix
+\begin{equation}
+L_1 =
+\begin{pNiceArray}{c|c}
+	1 & \mathbf{0} \\
+	\hline
+	\mathbf{l_1} & I_{n-1}
+\end{pNiceArray}
+\end{equation}
+where
+\begin{equation}
+\mathbf{l_1} = \begin{pmatrix}
+	-a_{21}/a_{11} \\
+	-a_{31}/a_{11} \\
+	\vdots \\
+	-a_{n1}/a_{11}
+\end{pmatrix}
+\end{equation}
+and $I_{n-1}$ is the $n-1 \times n-1$ identity matrix.
+\label{constr:gauss_L1}
+\end{constr}
+
+The effect of this construction is to eliminate all entries below $a_{11}$.
+
+\begin{theo}{$L_1^{-1}$}
+.We can check that the inverse of $L_1$ is
+\begin{align}
+L_1^{-1} &= \begin{pNiceArray}{c|c}
+	1 & \mathbf{0} \\
+	\hline
+	-\mathbf{l_1} & I_{n-1}
+\end{pNiceArray} \\
+&= \begin{pmatrix}
+	1 & 0 & 0 & \cdots & 0 \\
+	a_{21}/a_{11} & 1 \\
+	a_{31}/a_{11} & & 1 \\
+	\vdots & & & \ddots \\
+	a_{n1}/a_{11} & & & & 1
+\end{pmatrix}
+\end{align}
+\end{theo}
+
+\begin{theo}{Gaussian Elimination Step}
+.The first step in Gaussian elimination yields
+\begin{equation}
+L_1 A = \begin{pNiceArray}{c|ccc}
+	1 & a_{12} & \cdots & a_{1n} \\
+	\hline
+	0 & \Block{3-3}<\Large>{\hat{A_1}} \\
+	\vdots &&& \\
+	0 &&&
+\end{pNiceArray}
+\end{equation}
+where $\hat{A_1}$ is some arbitrary sub-matrix resulting from the multiplication.
+\label{thm:Gauss_step_1}
+\end{theo}
+
+Having done this, we can apply the same Gaussian elimination procedure to the $n-1 \times n-1$ sub-matrix $\hat{A_1}$. This corresponds to multiplication by $n-1 \times n-1$ matrix $L_2'$:
+\begin{equation}
+	L_2' \hat{A_1}
+\end{equation}
+
+But we want to represent all Gaussian elimination steps as multiplications performed on $A$:
+\begin{equation}
+	L_2 L_1 A
+\end{equation}
+
+We can get $L_2$ from $L_2'$:
+\begin{constr}{$L_2$}
+.Given the matrix $L_2$ from the Gaussian elimination step on $\hat{A_1}$, we have
+\begin{equation}
+L_2 = \begin{pNiceArray}{c|c}
+	1 & \mathbf{0} \\
+	\hline
+	\mathbf{0} & L_2'
+\end{pNiceArray}
+\end{equation}
+\end{constr}
+
+This gaussian elimination procedure and the associated constructions continue recursively, each time operating on the increasingly small sub-matrix $\hat{A}$.
+
+The end result is that $A$ will be reduced to an upper-diagonal matrix $U$.
+
+\begin{defn}{$U$}
+.Given $n\times n$ matrix $A$, the Gaussian elimination procedure (repeated elimination for each of the $n-1$ columns, excluding the last column) generates the upper-triangular matrix $U$:
+\begin{equation}
+	L_{n-1} L_{n-2} \cdots L_2 L_1A = U
+\end{equation}
+\label{defn:U}
+\end{defn}
+
+Notice that by this definition
+\begin{align}
+	A &= (L_{n-1} L_{n-2} \cdots L_2 L_1)^{-1} U \\
+	&= L_1^{-1} L_2^{-1} \cdots L_{n-1}^{-1} U
+\end{align}
+
+\begin{defn}{$L$}
+.We define
+\begin{equation}
+	L_1^{-1} L_2^{-1} \cdots L_{n-1}^{-1}  = L
+\end{equation}
+\label{defn:U}
+\end{defn}
+
+\begin{theo}{$L$ is lower-triangular}
+.We can check by multiplication that $L$ is lower-triangular.
+
+Moreover, we can see that $L$ takes the form:
+\begin{equation}
+\begin{pNiceArray}{ccccc}
+	1 & \\
+	& 1 \\
+	& & \ddots \\
+	& & & 1 \\
+	\mathbf{l_1} & \mathbf{l_2} & \cdots & \mathbf{l_{n-1}} & 1
+\end{pNiceArray} = \begin{pmatrix}
+	1 & \\
+	l_{21} & 1 \\
+	l_{31} & l_{32} & 1 \\
+	\vdots & \vdots & & \ddots \\
+	l_{n1} & l_{n2} & \cdots & l_{n,n-1} & 1
+\end{pmatrix}
+\end{equation}
+where sub-column-matrices $\mathbf{l_1}, \dots, \mathbf{l_n}$ are as defined in construction 8.1.
+\label{thm:L_upper}
+\end{theo}
+
+\begin{defn}{$LU$ decomposition}
+.The $LU$ decomposition of A is given by
+\begin{equation}
+	A = LU
+\end{equation}
+where $L$ and $U$ are determined by Gaussian elimination as defined above.
+
+$L$ is a lower-triangular matrix and $U$ is an upper-triangular matrix.
+\label{defn:LU}
+\end{defn}
+
+Let's again consider the linear system of equations
+\begin{equation}
+	Ax = b
+\end{equation}
+
+Performing Gaussian elimination, we get
+\begin{equation}
+	L_{n-1} \cdots L_2 L_1 A x = L_{n-1} \cdots L_2 L_1 b
+\end{equation}
+
+The right hand side contains our definition of $U$:
+\begin{equation}
+	U x = L_{n-1} \cdots L_2 L_1 b
+\end{equation}
+
+\begin{defn}{$y$}
+.Define
+\begin{equation}
+	y = L_{n-1} \cdots L_2 L_1 b
+\end{equation}
+
+Equivalently,
+\begin{equation}
+	L_1^{-1} L_2^{-1} \cdots L_{n-1}^{-1} y = b
+\end{equation}
+
+The left hand side contains our definition of $L$:
+\begin{equation}
+	Ly = b
+\end{equation}
+\label{defn:y}
+\end{defn}
+
+Using this definition, our system of linear equations becomes
+\begin{equation}
+	Ux = y
+\end{equation}
+where
+\begin{equation}
+	Ly = b
+\end{equation}
+
+\begin{algo}{Solve linear system of equations}
+.Given a linear system of equations $Ax = b$, we want to solve for $x$.
+
+\begin{algorithm}[H]
+\caption{Solve $Ax = b$ for $x$}
+\begin{algorithmic}[1]
+\State Compute $L, U$ \Comment{$LU$ decomposition of $A$}
+\State Solve $Ly = b$ \Comment{Forward substitution}
+\State Solve $Ux = y$ \Comment{Back substitution}
+\end{algorithmic}
+\end{algorithm}
+
+The advantage of this algorithm is that when solving systems of equations involving the same matrix $A$, $L$ and $U$ can be reused.
+\label{alg:gauss}
+\end{algo}
+
+\begin{algo}{Solve $Ly = b$}
+.Given triangular system of equation $Ly = b$, solve for $y$
+
+We are given
+\begin{equation}
+\begin{pmatrix}
+	l_{11} & \\
+	l_{21} & l_{22} \\
+	l_{31} & l_{32} & l_{33} \\
+	\vdots & \vdots & \vdots & \ddots \\
+	l_{n1} & l_{n2} & l_{n3} & \cdots & l_{nn}
+\end{pmatrix}
+\begin{pmatrix}
+	y_1 \\ y_2 \\ y_3 \\ \vdots \\ y_n
+\end{pmatrix} =
+\begin{pmatrix}
+	b_1 \\ b_2 \\ b_3 \\ \vdots \\ b_n
+\end{pmatrix}
+\end{equation}
+
+The solution is given by:
+\begin{align}
+	y_1 &= \frac{b_1}{l_{11}} \\
+	y_2 &= \frac{b_2 - l_{21}y_1}{l_{22}}\\
+	&\ \vdots \\
+	y_n &= \frac{b_n - l_{n1}y_1 - l_{n2}y_2 - \cdots - l_{n,n-1}y_{n-1}}{l_{nn}}
+\end{align}
+
+The same exact procedure in the reverse order can be used to solve the upper-triagonal system of equations $Ux = y$.
+\label{alg:triagonal}
+\end{algo}
+
+\subsection{Costs}
+Here we will consider the computational cost of the Gaussian elimination procedure--namely the number of floating point additions and multiplications (floating point operations, also known as FLOPs) required.
+
+When computing the first Gaussian elimination step (multiplication of $A$ by $L_1$), for each row $i$ below the 1st row, we multiply the row $i$ by $-\frac{a_{i1}}{a_{11}}$ and add the result to the row.
+
+This means 1 division per row and $n-1$ multiplications and additions per row.
+
+Since there are $n-1$ rows below the 1st row, this results in $n-1$ divisions and $(n-1)^2$ multiplication/additions overall.
+
+The Gaussian elimination is then repeated for every resulting sub-matrix $\hat{A}$.
+
+Thus the overall number of divisions is
+\begin{equation}
+	\sum_{k=1}^{n-1} k
+\end{equation}
+which is $O(n^2)$.
+
+The overall number of multiplications is
+\begin{equation}
+	\sum_{k=1}^{n-1}k^2
+\end{equation}
+
+This sum has a closed form solution that can be computed with the use of generating functions. It can also be bounded above and below by a Riemann integral approximation. Either way, we get that the sum is $\Theta\left(\frac{n^3}{3}\right)$.
+
+Finally, having found $L$ and $U$, to solve $Ly = b$ and $Ux = y$ using algorithm 8.2, we need
+\begin{equation}
+	\sum_{k=1}^{n-1} k
+\end{equation}
+FLOPs each, which is $O(n^2)$.
+
+\begin{theo}{Cost of Gaussian elimination}
+.Given $n \times n$ matrix $A$, to solve the system of equations $Ax = b$ using Gaussian elimination requires $\Theta\left(\frac{n^3}{3}\right)$ FLOPs.
+
+\label{thm:gauss_cost}
+\end{theo}
+
+\subsection{Floating Point Error}
+
+\begin{defn}{Machine precision}
+.Given a real number $a$, in machine computation it is approximated by $\fl(a)$ which has the property
+\begin{equation}
+	\frac{\left| a - \fl(a) \right|}{\left|a\right|} \leq \mu
+\end{equation}
+where $\mu$ is the \textbf{machine precision}, also called the \textbf{machine epsilon}.
+
+\label{defn:machine_precision}
+\end{defn}
+
+\begin{coro}{Addition of numbers below machine precision has no effect}
+.For any $\epsilon$ such that $\left| \epsilon \right| < \mu$,
+\begin{equation}
+	\fl(1 + \epsilon) = 1
+\end{equation}
+\end{coro}
+
+\begin{coro}{$\mu$ is the smallest number whose addition has an effect}
+.The machine precision $\mu$ is the smallest number such that
+\begin{equation}
+	\fl(1 + \mu) > 1
+\end{equation}
+\end{coro}
+
+\begin{coro}{Addition to large numbers has no effect}
+.For any $\epsilon$ such that $\left| \epsilon \right| < \mu$,
+\begin{equation}
+	\fl\left(\frac{1}{\epsilon} \pm 1\right) = \frac{1}{\epsilon}
+\end{equation}
+\end{coro}
+
+If the first entry in the process of Gaussian elimination is smaller in absolute value than the machine precision, floating point error can blow up significantly.
+
+\end{document}

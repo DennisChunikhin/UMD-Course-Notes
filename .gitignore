@@ -1,0 +1,7 @@
+# MiKTeX
+*.synctex*
+*.aux
+*.auxlock
+*.log
+*.toc
+*.md5

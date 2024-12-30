@@ -1,0 +1,955 @@
+\documentclass[12pt,letterpaper]{article}
+
+%\usepackage{common}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{nicematrix}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tcolorbox}
+\usepackage{nicefrac}
+\tcbuselibrary{theorems}
+
+\usepackage{hyperref}
+\usepackage{parskip}
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+\newcommand{\skipline}{\vspace{\baselineskip}}
+\newcommand{\dis}{\displaystyle}
+\newcommand{\noin}{\noindent}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\mt}[1]{\text{#1}}
+\newcommand{\tr}{\mathrm{Trace}}
+\newcommand{\Tr}{\mathrm{Trace}}
+\newcommand{\Ker}{\mathrm{Ker}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\fl}{\mathrm{fl}}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+
+\newtcbtheorem[number within=section]{theo}{Theorem}{colback=green!5,colframe=green!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{coro}{Corollarly}{colback=green!5,colframe=green!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{lemma}{Lemma}{colback=green!5,colframe=green!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{defn}{Definition}{colback=red!5,colframe=red!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{constr}{Construction}{colback=yellow!5,colframe=yellow!35!black,fonttitle=\bfseries}{th}
+\newtcbtheorem[number within=section]{algo}{Algorithm}{colback=blue!5,colframe=blue!35!black,fonttitle=\bfseries}{th}
+%\newtcbtheorem[number within=section]{lemma}{Lemma}{colback=yellow!5,colframe=yellow!35!black,fonttitle=\bfseries}{th}
+
+\title{AMSC 460 Numerical LinAlg}
+\author{Dennis Chunikhin}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\[
+<3
+\]
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{Gaussian Elimination}
+We discuss floating point error in the context of Gaussian elimination and build towards pivoting.
+
+\subsection{Floating Point Error}
+
+\begin{defn}{Machine precision}
+.Given a real number $a$, in machine computation it is approximated by $\fl(a)$ which has the property
+\begin{equation}
+	\frac{\left| a - \fl(a) \right|}{\left|a\right|} \leq \mu
+\end{equation}
+where $\mu$ is the \textbf{machine precision}, also called the \textbf{machine epsilon}.
+\label{defn:machine_precision}
+\end{defn}
+
+Typically the machine precision is of the order $\mu \approx 10^{-16}$.
+
+\begin{coro}{Addition of numbers below machine precision has no effect}
+.For any $\epsilon$ such that $\left| \epsilon \right| < \mu$,
+\begin{equation}
+	\fl(1 + \epsilon) = 1
+\end{equation}
+\end{coro}
+
+\begin{coro}{$\mu$ is the smallest number whose addition has an effect}
+.The machine precision $\mu$ is the smallest number such that
+\begin{equation}
+	\fl(1 + \mu) > 1
+\end{equation}
+\end{coro}
+
+\begin{coro}{Addition to large numbers has no effect}
+.For any $\epsilon$ such that $\left| \epsilon \right| < \mu$,
+\begin{equation}
+	\fl\left(\frac{1}{\epsilon} \pm 1\right) = \frac{1}{\epsilon}
+\end{equation}
+\end{coro}
+
+\subsection{Gaussian Elimination Example}
+
+Consider for example the linear system:
+\begin{equation} \label{eq:ex_sys}
+\begin{bmatrix}
+	\delta & 1 \\
+	1 & 1
+\end{bmatrix} \begin{bmatrix}
+	x_1 \\ x_2
+\end{bmatrix} =
+\begin{bmatrix}
+	1 \\ 3
+\end{bmatrix}
+\end{equation}
+where $\delta$ is very small, specifically, $\delta < \mu$.
+
+\subsubsection{Ideal Solution}
+First we solve this without floating point error.
+
+For the first step of Gaussian elimination, we have
+\begin{equation}
+L_1 = \begin{bmatrix}
+	1 & 0 \\
+	-\frac{1}{\delta} & 1
+\end{bmatrix}
+\end{equation}
+
+This gives us
+\begin{equation}
+L_1 A = \begin{bmatrix}
+	1 & 0 \\
+	-\frac{1}{\delta} & 0
+\end{bmatrix} \begin{bmatrix}
+	\delta & 1 \\
+	1 & 1
+\end{bmatrix} =
+\begin{bmatrix}
+	\delta & 1 \\
+	0 & 1-\frac{1}{\delta}
+\end{bmatrix}
+\end{equation}
+and
+\begin{equation}
+L_1 b = \begin{bmatrix}
+	1 \\ 3-\frac{1}{\delta}
+\end{bmatrix}
+\end{equation}
+
+Now we compute $x$:
+\begin{align}
+	&\left(1 - \frac{1}{\delta}\right) x_2 = 3 - \frac{1}{\delta} \\
+	\implies & x_2 = \frac{3 - \nicefrac{1}{\delta}}{1 - \nicefrac{1}{\delta}}
+\end{align}
+and
+\begin{align}
+	& \delta x_1 + x_2 = 1 \\
+	\implies & x_1 = \frac{1 - x_2}{\delta} = \frac{1 - \frac{3 - \nicefrac{1}{\delta}}{1 - \nicefrac{1}{\delta}}}{\delta}
+	= \frac{1 - \nicefrac{1}{\delta} - 3 + \nicefrac{1}{\delta}}{\delta (1 - \delta)} = -\frac{2}{\delta-1}
+\end{align}
+
+Since we are assuming $\delta$ is very small ($\delta \ll 1$),
+\begin{align}
+	x_1 = -\frac{2}{\delta-1} \approx -\frac{2}{-1} = 2
+\end{align}
+
+\subsubsection{Floating Point Error}
+Now let us see what floating point error does to the same linear system (equation \ref{eq:ex_sys}).
+
+In this case we have
+\begin{align}
+	\fl\left(3 - \frac{1}{\delta}\right) &= -\frac{1}{\delta} \\
+	\fl\left(1 - \frac{1}{\delta}\right) &= -\frac{1}{\delta}
+\end{align}
+
+Thus we have
+\begin{equation}
+	x_2 = \frac{\fl\left( 3 - \nicefrac{1}{\delta} \right)}{\fl\left( 1- \nicefrac{1}{\delta} \right)}
+	= \frac{-\nicefrac{1}{\delta}}{-\nicefrac{1}{\delta}} = 1
+\end{equation}
+
+That is $\fl(x_2) = 1$.
+
+\begin{equation}
+	x_1 = \frac{1 - x_2}{\delta} = \frac{1-1}{\delta} = 0
+\end{equation}
+
+$x_1$ and $x_2$ are completely wrong!
+
+Hence we need pivoting.
+
+\subsection{Pivoting}
+\begin{algo}{Pivoting}
+.The process of pivoting is:
+\begin{enumerate}
+	\item Find the largest entry in the column below the diagonal, that is the largest of $a_{21}, \dots, a_{n1}$. Let's say that $a_{k1}$ is the largest entry.
+	\item Interchange rows $1$ and $k$ (so that the largest entry $a_{k1}$ is now in the position $(1,1)$).
+	\item Apply the Gaussian elimination strategy.
+\end{enumerate}
+\label{alg:pivoting}
+\end{algo}
+
+Interchanging rows can be represented using a \textbf{permutation matrix}:
+\begin{constr}{Permutation matrix}
+.We represent interchanging row $1$ and $k$ using the \textbf{permutation matrix}:
+\begin{equation}
+P_1 =
+\begin{bNiceArray}{c|ccccc|c|ccccc}
+	0 & & & & & & 1 & & & & &  \\
+	\hline
+	& \Block{3-5}<\Large>{I_{k-1}} \\ \\ \\
+	\hline
+	1 & & & & & & 0 \\
+	\hline
+	& & & & & & & \Block{3-5}<\Large>{I_{n-k-1}} \\ \\ \\
+\end{bNiceArray}
+\end{equation}
+This is just the identity matrix with the $1$-st and $k$-th column swapped.
+\label{const:permutation_matrix}
+\end{constr}
+
+For the first step of Gaussian elimination, we first compute $P_1A$, and $P_1b$. Then we compute $L_1$ for $P_1A$. The resulting matrix is then
+\begin{equation}
+	L_1 P_1 A
+\end{equation}
+and
+\begin{equation}
+	L_1 P_1 b
+\end{equation}
+
+Next we recursively continue the process of the sub-matrix, finding $P_2$ and then $L_2$. The result of the whole Gaussian elimination process is then
+\begin{equation}
+	L_{n-1} P_{n-1} \cdots L_2 P_2 L_1 P_1 Ax = L_{n-1} P_{n-1} \cdots L_2 P_2 L_1 P_1 b
+\end{equation}
+
+As before, we call the matrix on the left-hand side $U$:
+\begin{defn}{$U$}
+.Call
+\begin{equation}
+	U = L_{n-1} P_{n-1} \cdots L_2 P_2 L_1 P_1 A
+\end{equation}
+\label{defn:U}
+\end{defn}
+
+Thus
+\begin{equation}
+	A = P_1^{-1} L_1^{-1} \cdots P_{n-1}^{-1} L_{n-1}^{-1} U
+\end{equation}
+
+Note first that each $P_i$ is its own inverse: $P_i = P_i^{-1}$.
+
+Note also that intuitively performing row swaps before each row-reduction is the same as performing all the swaps immediately and then doing row-reduction. That is, it can be shown that
+\begin{equation}
+	P_{n-1} \cdots P_2 P_1 A = L_{n-1}^{-1} \cdots L_2^{-1} L_1^{-1} U
+\end{equation}
+\begin{defn}{$LU$ decomposition}
+.Define
+\begin{equation}
+	P = P_{n-1} \cdots P_2 P_1
+\end{equation}
+and, as before
+\begin{equation}
+	L = L_{n-1}^{-1} \cdots L_2^{-1} L_1^{-1}
+\end{equation}
+Then we have
+\begin{equation}
+	PA = LU
+\end{equation}
+\label{defn:LU_decomp}
+\end{defn}
+
+That is, the result is the $LU$ decomposition of $PA$.
+
+We say that $P^{-1}L$ is \textbf{psychologically lower triangular}.
+
+
+\section{Error in Gaussian Elimination}
+\subsection{Looking Ahead}
+Imagine that solving system $Ax = b$ using Gaussian elimination, we compute $\hat{x} \approx x$.
+
+\textbf{We ask:} how big is the error $\frac{\lVert x - \hat{x} \rVert}{\lVert x \rVert}$?
+
+\textbf{Claim:} The computed $\hat{x}$ is the exact solution to a perturbed problem
+\begin{equation} \label{eq:perturbed}
+	(A+E)\hat{x} = b
+\end{equation}
+
+Hopefully $E$ is small!
+
+We will first focus up on building up the mathematical machinery necessary to analyze this.
+
+\subsection{Norms}
+For this entire section we are working in $\R^n$.
+
+(Note from me: these defenitions are all generalizable to $\C^n$, but require us to be a little more careful with e.g. complex conjugates).
+
+\begin{defn}{Common Vector Norms}
+.We can define several different notions of a \textbf{vector norm} $\lVert v \rVert$ for $v \in \R^n$.
+
+The $l^2$ norm is:
+\begin{equation}
+	\lVert v \rVert_2 = \left( \sum_{i=1}^n v_i^2 \right)^{1/2}
+\end{equation}
+
+The Manhattan norm is:
+\begin{equation}
+	\lVert v \rVert_1 = \sum_{i=1}^n \lvert v_i \rvert
+\end{equation}
+(called the Manhattan norm because it is kind of like ''counting blocks in Manhattan'' -- very silly).
+
+\medskip
+
+The supremum norm (or uniform norm) is:
+\begin{eqnarray}
+	\lVert v \rVert_\infty = \max_{1 \leq i \leq n} \lvert v_i \rvert
+\end{eqnarray}
+\label{def:vector_norm}
+\end{defn}
+
+A vector norm induces a matrix norm:
+\begin{defn}{Matrix norm}
+.The \textbf{matrix norm} of a real-valued matrix $A$ is defined by
+\begin{equation}
+	\lVert A \rVert = \max_{v \neq 0} \frac{\lVert A v \rVert}{\lVert v \rVert}
+\end{equation}
+
+We say that the matrix norm $\lVert A \rVert$ is \textit{induced} by the vector norm.
+\label{defn:matrix_norm}
+\end{defn}
+
+This definition makes some intutive sense: Our intuition for vector norm is a measure of the length of a vector. Recall that matrices are linear transformations--i.e. they transform vectors. It thus makes sense to define the matrix norm as a measure of how much a matrix stretches vectors. Our definition of matrix norm is the maximum amount by which the matrix $A$ stretches a given vector.
+
+\begin{theo}{Common Matrix Norms}
+.For the vector norms defined above we have the following matrix norms:
+
+\begin{equation}
+	\lVert A \rVert_2 = \text{max singular value of } A = \left( \text{max eigenvalue of } A^TA \right)^{1/2}
+\end{equation}
+Note that this is hard to compute.
+
+\medskip
+
+\begin{equation}
+	\lVert A \rVert_1 = \max_j \sum_i \lvert a_{ij} \rvert
+\end{equation}
+That is, $\lVert A \rVert_1$ is the maximum column sum (sum over rows).
+
+\medskip
+
+\begin{equation}
+	\lVert A \rVert_\infty = \max_i \sum_j \lvert a_{ij} \rvert
+\end{equation}
+\label{thm:matrix_norms}
+\end{theo}
+
+\subsection{Error in Gaussian Elimination}
+Considered the perturbed system given by equation \ref{eq:perturbed}.
+
+\begin{theo}{Error in Perturbed System}
+.We claim that
+\begin{equation}
+	\lVert E \rVert \leq \mu \rho(n) \lVert A \rVert
+\end{equation}
+where $\rho(n)$ is typically of order $1$ (and $\mu$ is the machine precision).
+
+\medskip
+
+That is, the relative error for the preturbed system,
+\begin{equation}
+	\frac{\lVert E \rVert}{\lVert A \rVert}
+\end{equation}
+behaves like the machine precision $\mu$.
+\label{thm:perturbed_error}
+\end{theo}
+
+Note that this is true only when pivoting is done (otherwise a small entry may completely mess the result up)!
+
+\subsubsection*{Now we analyze the error in our perturbed system:}
+We know that
+\begin{align}
+	& (A+E)\hat{x} = b \\
+	\implies & b - A \hat{x} = E \hat{x} \\
+	\implies & \lVert b - A\hat{x} \rVert = \lVert E \hat{x} \rVert \\
+	& \leq \lVert E \rVert \lVert \hat{x} \rVert
+\end{align}
+by definition of the matrix norm (since $\lVert E \rVert = \max_y \lVert Ey \rVert / \lVert y \rVert$).
+
+Note that
+\begin{equation} \label{eq:41}
+	x - \hat{x} = A^{-1}(b - A\hat{x})
+\end{equation}
+since $Ax = b \implies x = A^{-1} b$.
+
+And since $b - A\hat{x} = E\hat{x}$, equation \ref{eq:41} becomes
+\begin{equation}
+	x - \hat{x} = A^{-1} E \hat{x}
+\end{equation}
+
+Thus we have
+\begin{align}
+	\lVert x - \hat{x} \rVert &= \lVert A^{-1} E \hat{x} \rVert \\
+	&\leq \lVert A^{-1} \rVert \lVert E \hat{x} \rVert \\
+	&\leq \lVert A^{-1} \rVert \lVert E \rVert \lVert \hat{x} \rVert
+\end{align}
+
+Thus
+\begin{align}
+	\frac{\lVert x - \hat{x} \rVert}{\lVert \hat{x} \rVert} \leq \frac{\lVert A^{-1} \rVert \lVert E \rVert \lVert \hat{x} \rVert}{\lVert \hat{x} \rVert}
+	\leq \lVert A^{1} \rVert \mu \rho(n) \lVert A \rVert
+\end{align}
+by theorem 2.2.
+
+That is,
+\begin{theo}{Almost Error Bound}
+.We have
+\begin{equation}
+	\frac{\lVert x - \hat{x} \rVert}{\lVert \hat{x} \rVert} \leq \lVert A^{-1} \rVert \lVert A \rVert \mu \rho(n)
+\end{equation}
+
+The left-hand side is almost the relative error.
+
+The right hand side shows us that it is essentially bounded by the machine precision.
+\label{thm:almost_bound}
+\end{theo}
+
+\begin{defn}{Condition Number}
+.Often $\lVert A^{-1} \rVert \lVert A \rVert$ is called the \textbf{condition number} of $A$, denoted
+\begin{equation}
+	K(A) = \lVert A^{-1} \rVert \lVert A \rVert
+\end{equation}
+\label{def:condition_number}
+\end{defn}
+
+\begin{theo}{True Error Bound}
+.We can show (stated here without proof)
+\begin{equation}
+	\frac{\lVert x - \hat{x} \rVert}{\lVert x \rVert} \leq \frac{ K(A) \rho(n) \mu}{1 - K(A) \rho(n) \mu}
+\end{equation}
+\label{thm:true_bound}
+\end{theo}
+
+Note: Gaussian elimination is not truly stable! We can make it fail with so-called ``pathological matrices.'' However these matrices do not seem to arise in natural situations.
+
+
+\section{Singular Value Decomposition}
+
+\begin{constr}{Singular Value Decomposition}
+.\textbf{Statement:} Any matrix $A$ can be factored as $A = U \Sigma V^T$.
+\medskip
+
+If $A \in \R^{m \times m}$, then $U$ is an orthogonal matrix of order $n$, $V$ is an orthogonal matrix of order $n$, and
+\begin{equation}
+\Sigma = \begin{pmatrix}
+	\sigma_1 \\
+	& \sigma_2 \\
+	& & \ddots \\
+	0 & & & \sigma_n
+\end{pmatrix}
+\end{equation}
+where $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_n$.
+\medskip
+
+$\sigma_i$ are called \textbf{singular values}.
+\label{constr:svd}
+\end{constr}
+
+\subsection{Orthogonal Matrices and Given's Rotation}
+
+\begin{defn}{Orthogonal Matrices}
+.A square matrix $X$ is orthogonal if
+\begin{equation}
+	X^T X = X X^T = I
+\end{equation}
+
+That is, the columns/rows of $X$ are orthonormal.
+\label{def:ortho}
+\end{defn}
+
+Note on orthogonality: the $(i,j)$ entry of $X^T X$ is the inner product of the $i$-th row of $X^T$ (i.e. the $i$-th column of $X$) and the $j$-th column of $X$. If all columns are orthonormal, the inner product is $0$ for $i \neq j$ (orthogonality) and $1$ for $i=j$ (normalization).
+
+\skipline
+
+An important example of an orthogonal matrix in $2D$ is
+\begin{equation}
+Q =
+\begin{bmatrix}
+	\cos \theta & -\sin \theta \\
+	\sin \theta & \cos \theta
+\end{bmatrix}
+\end{equation}
+
+We check that this matrix is indeed orthogonal:
+\begin{align}
+Q^T Q &= \begin{bmatrix}
+	\cos^2\theta + \sin^2\theta & -\cos\theta\sin\theta+\cos\theta\sin\theta \\
+	-\sin\theta\cos\theta+\sin\theta\cos\theta & (-\sin\theta)^2 + \cos^2\theta
+\end{bmatrix} \\
+&=
+\begin{bmatrix}
+	1 & 0 \\
+	0 & 1
+\end{bmatrix}
+\end{align}
+
+Thus $Q$ is orthogonal.
+
+Let's further analyze $Q$.
+
+Take any vector $v$ such that $\lVert v \rVert_2 = 1$, and consider $w = Qv$.
+\begin{align}
+	\lVert w \rVert_2^2 &= \langle Qv, Qv \rangle \\
+	&= (Qv)^T Qv \\
+	&= v^T Q^T Q v \\
+	&= v^T v \\
+	&= \langle v, v \rangle \\
+	&= \lVert v \rVert_2^2 = 1
+\end{align}
+where $\langle \cdot, \cdot \rangle$ is the inner product (in this case the conventional dot product/Euclidean inner product).
+
+Thus $Q$ preserves the norm of a vector.
+
+(Note: the professor has alternated a bit between $\langle \cdot, \cdot \rangle$ and $( \cdot, \cdot )$ notation for inner products in the past. In this section he used the latter notation, but I used the former since I think it is somewhat more common).
+
+Let $\phi$ be the angle between $v$ and $w$ for any $v$.
+\begin{align}
+	\cos\phi &= \frac{\langle v, w \rangle}{\lVert v \rVert \lVert w \rVert} \\
+	&= \frac{\big\langle (v_1, v_2), Q(v_1,v_2) \big\rangle}{\lVert v \rVert \lVert Q v \rVert}
+\end{align}
+
+Without writing out all the tedious trig calculations, we note that
+\begin{align}
+	\big\langle (v_1, v_2), Q(v_1,v_2) \big\rangle
+	&= \big\langle (v_1, v_2), (v_1 \cos\theta - v_2 \sin\theta, v_1\sin\theta + v_2\cos\theta) \big\rangle \\
+	&= \cos\theta \lVert v \rVert^2
+\end{align}
+
+Thus
+\begin{align}
+	\cos\phi &= \frac{\cos\theta \lVert v \rVert^2}{\lVert v \rVert \lVert Qv \rVert} \\
+	&= \frac{\cos\theta \lVert v \rVert^2}{\lVert v \rVert^2} \\
+	&= \cos\theta
+\end{align}
+
+Thus
+\begin{equation}
+	\theta = \phi
+\end{equation}
+
+So $Q$ rotates $v$ by an angle of $\theta$.
+
+\begin{theo}{Given's Rotation}
+.The matrix
+\begin{equation}
+\begin{bmatrix}
+	\cos\theta & -\sin\theta \\
+	\sin\theta & \cos\theta
+\end{bmatrix}
+\end{equation}
+represents counter-clock-wise rotation by $\theta$ in $\R^2$.
+\label{thm:Givens_rotation}
+\end{theo}
+
+\subsection{Intro to Singular Value Decomposition}
+The goal of singular value decomposition (SVD) is:
+
+Given matrix $A \in \R^{n \times m}$ (or $\mathcal{M}_{n \times m}(\R)$ in more familiar notation), factor
+\begin{equation}
+	A = U \Sigma V^T
+\end{equation}
+where $U, V$ are orthogonal matrices (columns are orthonormal), $U$ of order $n$, $V$ of order $m$, and $\Sigma$ diagonal.
+
+%\begin{theo}{Orthonormal matrix}
+%	.A matrix $U$ is orthonormal iff. $U^T U = U U^T = I$.
+%\end{theo}
+%This is because the $(i,j)$ entry of $U^T U$ is the inner product of the $i$-th row of $U^T$ (i.e. the $i$-th column of $U$) and the $j$-th column of $U$. If all columns are orthonormal, this is $0$ for $i \neq j$ (orthogonality) and $1$ for $i=j$ (normalization).
+
+\skipline
+
+Let's say without loss of generality $n \geq m$
+
+Then
+\begin{equation} \label{eq:Sigma}
+\Sigma = \begin{bmatrix}
+	\sigma_1 \\
+	& \sigma_2 \\
+	& & \ddots \\
+	& & & \sigma_m
+	\\ & & 0
+\end{bmatrix}
+\end{equation}
+(i.e. diagonal matrix for the first $m$ rows, and all zeros below that).
+
+Moreover, we impose the restriction that
+\begin{equation} \label{eq:sigma_inequality}
+	\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_m \geq 0
+\end{equation}
+
+\skipline
+
+It is interesting to note that Galois theory says that we cannot get an exact closed-form solution of $\Sigma$, but we can get away with numerical computation because we don't care if the error in $\Sigma$ is below the machine precision.
+
+\subsection{Householder Reflection}
+Now we construct an orthogonal matrix that will be useful to us
+\begin{constr}{Orthonormal matrix}
+.Given $u \in \R^n$, consider
+\begin{equation}
+	Q = I-\frac{2}{u^T u} u u^T
+\end{equation}
+\end{constr}
+
+The matrix $Q$ is called the \textbf{Householder reflection} (it will become apparent why in the end of this sub-section).
+
+\subsubsection{Proof that $Q$ is Orthogonal}
+\begin{equation}
+Q^T Q = (I - \frac{2}{u^T u} u u^T)^T (I - \frac{2}{u^T u} u u^T) = (I - \frac{2}{u^T u} u u^T) (I - \frac{2}{u^T u} u u^T)
+\end{equation}
+here we have distributed the transpose, noting that $I^T = I$ and $(u u^T)^T = (u^T)^T u^T = u u^T$.
+
+We continue to distribute this equation
+\begin{align}
+	Q^T Q &= (I - \frac{2}{u^T u} u u^T) (I - \frac{2}{u^T u} u u^T) \\
+	&= I - \frac{4}{u^T u} u u^T + \frac{4}{u^T u u^T u} u u^T u u^T \\
+	&= I - \frac{4}{u^T u} u u^T + \frac{4}{(u^T u) (u^T u)} u (u^T u) u^T \\
+	&= I - \frac{4}{u^T u} u u^T + \frac{4}{u^T u} u u^T \\
+	&= I
+\end{align}
+
+Thus $Q$ is orthogonal.
+
+\subsubsection{Geometric Interpretation of $Q$}
+There is a very nice geometric interpretation of $Q$ for $n=3$.
+
+Suppose $u \in \R^3$ and $u_2, u_3 \in \R^3$ span the plane orthogonal to $u$.
+
+Since $u$ is orthogonal to $u_2$ and $u_3$, it is linearly independent, meaning that all three of them span $\R^3$ and thus form a basis.
+
+Any vector $x \in \R^3$ can be written in this basis
+\begin{equation}
+	x = c u + c_2 u_2 + c_3 u_3
+\end{equation}
+
+Now consider
+\begin{equation}
+	Q = I - \frac{2}{u^T u} u u^T
+\end{equation}
+
+\begin{equation}
+	Qx = x - \frac{2}{u^T u} u u^T x
+\end{equation}
+
+We can expand $u^T x$ into
+\begin{equation} \label{eq:uTx}
+	u^T x = u^T (c u + c_2 u_2 + c_3 u_3)
+\end{equation}
+
+Since $u$ is orthogonal to $u_2, u_3$, the inner product $u^T u_2 = u^T u_3 = 0$, so only the $cu$ term in equation \ref{eq:uTx} is non-zero:
+\begin{equation}
+	u^T x = c u^T u
+\end{equation}
+
+Therefore
+\begin{align}
+	Qx &= (cu + c_2 u_2 + c_3 u_3) - \frac{2}{u^T u} u (c u^T u) \\
+	&= (cu + c_2 u_2 + c_3 u_3) - 2 c u \\
+	&= -cu + c_2 u_2 + c_3 u_3
+\end{align}
+
+We've inverted the orthogonal component--that is $Q$ reflected $x$ through the plane orthogonal to $u$ (spanned by $u_2, u_3$). This is called the \textbf{Householder reflection}.
+
+\subsection{Singular Value Decomposition}
+
+In a previous lecture we defined the matrix norm:
+\begin{defn}{Matrix norm}
+.A norm of matrix $A$ is induced by the $l^2$ norm. We define the norm of matrix $A$ as follows:
+\begin{equation}
+	\lVert A \rVert_2 = \max_{v \neq 0} \frac{\lVert A v \rVert_2}{\lVert v \rVert_2}
+\end{equation}
+\end{defn}
+
+We also state (for now without proof) that the norm of an orthogonal matrix $U$ is $1$:
+\begin{equation}
+	\lVert U \rVert_2 = 1
+\end{equation}
+and that given orthogonal matrix $U$,
+\begin{equation}
+	\lVert UX \rVert_2 = \lVert X \rVert_2 \ \forall X
+\end{equation}
+
+\skipline
+
+We will show that $\lVert A \rVert_2 = \sigma_1$. To do so, we will try to bound $\lVert A \rVert_2$ on both sides.
+
+\subsubsection{Upper Bound}
+For any $v \in R^n$,
+\begin{align} \label{eq:23}
+	\frac{\lVert Av \rVert_2}{\lVert v \rVert_2} &= \frac{\lVert U \Sigma V^T v \rVert_2}{\lVert v \rVert_2} = \frac{\lVert \Sigma V^T v \rVert_2}{\lVert v \rVert_2}
+\end{align}
+since $U$ is orthogonal.
+
+Let $w = V^T v$.
+
+Since $V$ is orthogonal,
+\begin{equation}
+	Vw = V V^T v = Iv = v
+\end{equation}
+
+Plugging this into equation \ref{eq:23},
+\begin{align}
+	\frac{\lVert \Sigma w\rVert_2}{\lVert Vw \rVert_2} = \frac{\lVert \Sigma w\rVert_2}{\lVert w \rVert_2}
+\end{align}
+since $V$ is orthogonal.
+
+Now we expand this using the fact that $\Sigma$ is diagonal (of the form given in equation \ref{eq:Sigma}) and the defenition of the $l^2$ norm:
+\begin{equation} \label{eq:26}
+	\frac{\lVert \Sigma w\rVert_2}{\lVert w \rVert_2} =
+	\frac{\left[(\sigma_1 w_1)^2 + (\sigma_2 w_2)^2 + \cdots + (\sigma_n w_n)^2\right]^{1/2}}{(w_1^2 + w_2^2 + \cdots + w_n^2)^{1/2}}
+\end{equation}
+
+Since $\sigma_1 \geq \sigma_2 \geq \cdots \sigma_n \geq 0$ (equation \ref{eq:sigma_inequality}), the numerator of expression \ref{eq:26} is bounded by:
+\begin{align}
+	&\left[(\sigma_1 w_1)^2 + (\sigma_2 w_2)^2 + \cdots + (\sigma_n w_n)^2\right]^{1/2} \\
+	&\quad \leq (\sigma_1^2 w_1^2 + \sigma_1^2 w_2^2 + \cdots + \sigma_1^2 w_n^2)^{1/2} \\
+	&\quad = \sigma_1 (w_1^2 + \cdots + w_n^2)^{1/2}
+\end{align}
+
+Thus, the entire expression \ref{eq:26} is bounded by:
+\begin{equation}
+	\frac{\left[(\sigma_1 w_1)^2 + (\sigma_2 w_2)^2 + \cdots + (\sigma_n w_n)^2\right]^{1/2}}{(w_1^2 + w_2^2 + \cdots + w_n^2)^{1/2}} \leq \sigma_1
+\end{equation}
+
+In other words,
+\begin{equation}
+	\lVert A \rVert_2 \leq \sigma_1
+\end{equation}
+
+\subsubsection{Lower Bound}
+Since norm is defined as the maximum, to show the lower bound we only need to find one $v$ such that $\frac{\lVert A v \rVert_2}{\lVert v \rVert_2} = \sigma_1$.
+
+Take
+\begin{equation}
+v = V \begin{pmatrix}
+	1 \\ 0 \\ \vdots \\ 0
+\end{pmatrix}
+\end{equation}
+that is,
+\begin{equation}
+w = \begin{pmatrix}
+	1 \\ 0 \\ \vdots \\ 0
+\end{pmatrix}
+\end{equation}
+in $v = Vw$.
+
+For this $v$ and $w$,
+\begin{align}
+	\frac{\lVert A v \rVert_2}{\lVert v \rVert_2} = \frac{\lVert \Sigma w \rVert_2}{\lVert w \rVert_2}
+	= \frac{\left\lVert \begin{array}{c}
+		\sigma_1 \\ 0 \\ \vdots \\ 0
+	\end{array} \right\rVert_2}{1} = \sigma_1
+\end{align}
+
+Thus
+\begin{equation}
+	\max_v \frac{\lVert Av \rVert_2}{\lVert v \rVert_2} \geq \sigma_1
+\end{equation}
+
+\begin{theo}{$l^2$ norm of $A$ is its first singular value}
+.This gives us the result
+\begin{equation}
+	\lVert A \rVert_2 = \sigma_1
+\end{equation}
+\label{thm:norm_a_sigma_1}
+\end{theo}
+
+This result will be important for computing the SVD.
+
+\subsection{Computing SVD}
+This is where all of the previous constructions come together.
+
+Let $n \times m$ matrix
+\begin{equation}
+A = \begin{bmatrix}
+	a_1 & a_2 & \cdots & a_m
+\end{bmatrix}
+\end{equation}
+
+We claim that there exists a matrix $Q_1 = I - 2\frac{uu^T}{u^Tu}$ such that
+\begin{equation}
+Q_1 A = \begin{pNiceArray}{c|ccc}
+	* & & \mathbf{b_1^T} & \\
+	\hline
+	0 & \Block{3-3}<\Large>{*} \\
+	\vdots \\
+	0
+\end{pNiceArray}
+\end{equation}
+
+This is (allegedly) proved in a HW exercise.
+
+Similarly, we claim that there exists $P_1$ such that
+\begin{equation}
+P_1 b_1 = \begin{pmatrix}
+	* \\ 0 \\ \vdots \\ 0
+\end{pmatrix}
+\end{equation}
+an $m-1$ length vector.
+
+From these two observations we get
+\begin{equation}
+Q_1 A P_1^T = \begin{pNiceArray}{c|cccc}
+	* & * & 0 & \cdots & 0 \\
+	\hline
+	0 & \Block{3-4}<\Large>{A_1} \\
+	\vdots \\
+	0
+\end{pNiceArray}
+\end{equation}
+
+Next we repeat these constructions for $A_1$ and get
+\begin{equation}
+Q_2 Q_1 A P_1^T P_2^T = \begin{pNiceArray}{cc|cccc}
+	* & * & 0 & 0 & \cdots & 0 \\
+	0 & * & * & 0 & \cdots & 0 \\
+	\hline
+	0 & 0 & \Block{3-4}<\Large>{A_2} \\
+	\vdots & \vdots \\
+	0 & 0
+\end{pNiceArray}
+\end{equation}
+
+If we keep doing this $m-1$ times, we get
+\begin{equation}
+Q_{m-1} \cdots Q_2 Q_1 A P_1^T P_2^T \cdots P_{m-1}^T
+\begin{bmatrix}
+	* & * \\
+	& * & * \\
+	& & * & \ddots \\
+	& & & \ddots & * \\
+	& & & & * \\
+	& & 0
+\end{bmatrix}
+\end{equation}
+Call this matrix $\Gamma$.
+
+Equivalently (by orthonormality):
+\begin{equation}
+	A = Q_1^T Q_2^T \cdots Q_{m-1}^T \Gamma P_{m-1} \cdots P_2 P_1
+\end{equation}
+
+This is step 1 of construction of the SVD.
+
+\subsubsection*{An outline of step 2:}
+
+Let $\Gamma$ be the bidiagonal matrix we get after step 1
+\begin{equation}
+\Gamma = \begin{bmatrix}
+	* & * & 0 \\
+	0 & * & * \\
+	0 & 0 & *
+\end{bmatrix}
+\end{equation}
+
+Multiply by Given's rotation
+\begin{equation}
+\begin{bmatrix}
+	* & * & 0 \\
+	0 & * & * \\
+	0 & 0 & *
+\end{bmatrix}
+\begin{bmatrix}
+	c & -s & 0 \\
+	s & c & 0 \\
+	0 & 0 & 1
+\end{bmatrix} =
+\begin{bmatrix}
+	* & 0 & 0 \\
+	+ & * & * \\
+	0 & 0 & *
+\end{bmatrix}
+\end{equation}
+
+Then compute
+\begin{equation}
+\begin{bmatrix}
+	\hat{c} & -\hat{s} & 0 \\
+	\hat{s} & \hat{c} & 0 \\
+	0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+	* & 0 & 0 \\
+	+ & * & * \\
+	0 & 0 & *
+\end{bmatrix} =
+\begin{bmatrix}
+	* & * & 0 \\
+	0 & * & * \\
+	0 & 0 & *
+\end{bmatrix}
+\end{equation}
+
+Repeta this for row pair.
+
+Overall superdiagonal  goes to $0$ over many iterations.
+
+\section{Principal Component Analysis}
+Suppose we have $p$ variables
+\begin{equation}
+	X_1, X_2, \dots, X_p
+\end{equation}
+and $n$ sample values of each of them, say
+\begin{equation}
+	x_{i1}, x_{i2}, \dots, x_{in}
+\end{equation}
+for variable $X_i$.
+
+The data can be represented as a matrix:
+\begin{equation}
+X = \begin{bNiceMatrix}[last-col]
+	x_{11} & x_{12} & \cdots & x_{1n} & \text{Var } 1 \\
+	x_{12} & x_{22} & \cdots & x_{2n} & \text{Var } 2 \\
+	\vdots & \vdots & \ddots & \vdots \\
+	x_{p1} & x_{p2} & \cdots & x_{pn} & \text{Var } p
+\end{bNiceMatrix}
+\end{equation}
+
+Compute the sample mean for each variable
+\begin{equation}
+	\mu_i = \frac{1}{n} \sum_{j=1}^n x_{ij}
+\end{equation}
+
+Compute matrix $A$ with mean substracted fromeach random variable (the \textbf{mean zero matrix}).
+
+Compute the sample covariance matrix
+\begin{equation}
+	C(X_i, X_i') = \frac{1}{n-1} \sum_{k=1}^n (X_{ik} - \mu_i)^2 = \sigma_{x_i}^2
+\end{equation}
+
+Correlation between variables (covariance normalized by standard deviation):
+\begin{equation}
+	\frac{C(X_i, X_i')}{\sigma_{x_i} \sigma_{x_i'}}
+\end{equation}
+
+Next compute the SVD of $A$:
+\begin{equation}
+	A = U \Sigma V^T = U_1 \Sigma_1 V^T
+\end{equation}
+where $U_1$ and $\Sigma_1$ have the zeros truncated out.
+
+This gives us
+\begin{equation}
+	A^T V = U_1 \Sigma_1
+\end{equation}
+
+The columns of $U_1$ are called the \textbf{principal components} of $A$.
+
+$U_1$ is associated with largest singular values and etc. (it is the change of coordinate matrix into the principal component system).
+
+Largest principal component $\implies$ variable highly correlated.
+
+\end{document}
