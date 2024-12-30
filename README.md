@@ -15,6 +15,7 @@ A collection of various course notes and materials.
 | Subject | Course Code | Semester |
 | ------- | ----------- | -------- |
 | [Numerical Computing](#AMSC460) | [`AMSC 460`](#AMSC460) | Fall 2024 |
+| [Complex Variables](#MATH463) | [`MATH 463`](#MATH463) | Spring 2024 |
 
 ### Physics
 
@@ -41,5 +42,44 @@ Nicely formatted in $\LaTeX$!
  - Numerical ordinary differential equations
 
 Directory: [`Courses/Math/AMSC460`](Courses/Math/AMSC460)
+
+### MATH463
+[Complex Numbers](Courses/Math/MATH463_1_Complex_Numbers.pdf)
+ - Complex numbers, complex plane
+ - Limits, continuity, and differentiability
+ - Cauchy-Riemann equations
+ - Analytic functions
+
+[Complex Functions](Courses/Math/MATH463_2_Complex_Functions.pdf)
+ - Complex exponential
+ - Complex trigonometric functions
+ - Complex logarithm
+ - Integration, ML theorem
+
+[Integration](Courses/Math/MATH463_3_Integration.pdf)
+ - Antiderivatives
+ - Cauchy-Riemann theorem
+ - Cauchy Integral Formula
+ - Liouville's theorem
+ - Maximum Modulus Principle
+
+[Sequences and Series](Courses/Math/MATH463_4_Sequences_Series.pdf)
+ - Sequences and series
+ - Taylor's theorem
+ - Laurent series
+ - Convergence
+
+[Residues](Courses/Math/MATH463_5_Residues.pdf)
+ - Singularities, poles, and residues
+ - Riemann's removable singularity theorem
+ - Residue integrals
+ - Zeros, the Argument Principle
+
+[Mappings](Courses/Math/MATH463_6_Mappings.pdf)
+ - Affine mappings
+ - Fractional linear transformations, bilinear mabs, Mobius transformations
+ - Extended complex plane
+
+Directory: [`Courses/Math/MATH463`](Courses/Math/MATH463)
 
 ## Physics Courses
